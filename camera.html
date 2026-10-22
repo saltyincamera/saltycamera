@@ -62,6 +62,8 @@ body{margin:0;background:var(--body);color:var(--fg);font-family:var(--f-body);f
 .estrip::-webkit-scrollbar{display:none}
 .echip{flex:0 0 auto;appearance:none;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;padding:5px 10px;font-family:var(--f-mono);font-size:12.5px;cursor:pointer;font-variant-numeric:tabular-nums}
 .echip[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 18%,var(--panel));font-weight:600}
+.lbar{display:contents}
+.lbar .top{order:0}.vf-wrap{order:1}.opts{order:2}.controls{order:3}
 .opts{display:grid;grid-template-columns:1.35fr .9fr .9fr 1fr;gap:8px;padding:12px 16px 4px}
 .opt{appearance:none;font:inherit;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:7px 8px;display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;cursor:pointer;text-align:left}
 .opt:active{border-color:var(--accent)}
@@ -125,16 +127,23 @@ body{margin:0;background:var(--body);color:var(--fg);font-family:var(--f-body);f
 
 /* ---- landscape: viewfinder left, controls right (like a camera app) ---- */
 @media (orientation:landscape) and (max-height:620px){
-  .app{max-width:none;display:grid;grid-template-columns:minmax(0,1fr) minmax(262px,33%);
-    grid-template-rows:auto auto 1fr auto;grid-template-areas:"vf top" "vf opts" "vf ." "vf controls";
+  /* viewfinder big on the left, shutter column on the right, status + 4 buttons in one row under the picture */
+  .app{max-width:none;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:minmax(0,1fr) auto;
+    grid-template-areas:"vf controls" "bar controls";
     padding-top:max(6px,env(safe-area-inset-top,0px));padding-bottom:max(6px,env(safe-area-inset-bottom,0px))}
-  .top{grid-area:top;padding:4px 16px 2px}
-  .film-name{font-size:17px}
-  .vf-wrap{grid-area:vf;padding:0 6px 0 4px}
-  .opts{grid-area:opts;grid-template-columns:1fr 1fr;padding:8px 16px 2px}
-  .controls{grid-area:controls;padding:6px 20px 2px}
-  .shutter{width:64px;height:64px}
-  .thumb,.round{width:46px;height:46px}
+  .vf-wrap{grid-area:vf;padding:0 4px 0 6px}
+  .lbar{grid-area:bar;display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,4fr);gap:8px;padding:6px 4px 0 10px;min-width:0}
+  .lbar .top{padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:var(--panel);min-width:0;display:block}
+  .lbar .film-name{font-size:14px}
+  .lbar .film-meta{font-size:10px;letter-spacing:.06em}
+  .lbar .meter{font-size:11px;margin-top:1px}
+  .opts{grid-template-columns:1.3fr .9fr .9fr 1fr;padding:0;gap:8px}
+  .opt{padding:6px 8px;justify-content:center}
+  .controls{grid-area:controls;display:flex;flex-direction:column-reverse;align-items:center;justify-content:center;gap:22px;
+    padding:0 max(14px,env(safe-area-inset-right,0px)) 0 10px}
+  .controls .thumb,.controls .round{justify-self:auto}
+  .shutter{width:68px;height:68px}
+  .thumb,.round{width:44px;height:44px}
   .sheet{overflow-y:auto}
   .start .inner{justify-content:flex-start;padding-block:12px;gap:12px}
   .start h1{font-size:26px}
@@ -149,12 +158,20 @@ body{margin:0;background:var(--body);color:var(--fg);font-family:var(--f-body);f
 <link rel="icon" href="favicon.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.json"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"></head>
 <body>
 <div class="app" id="app">
+  <div class="lbar">
   <div class="top">
     <div style="min-width:0">
       <div class="film-name" id="filmName">Kodak Portra 400</div>
-      <div class="film-meta" id="filmMeta">เกรน ●●●●○</div>
+      <div class="film-meta" id="filmMeta">ISO 400</div>
       <div class="meter" id="meter"></div>
     </div>
+  </div>
+  <div class="opts" id="opts">
+    <button class="opt" type="button" data-pop="film"><span class="ol">ฟิล์ม</span><span class="ov" id="ovFilm"></span></button>
+    <button class="opt" type="button" data-pop="scene"><span class="ol">แสง</span><span class="ov" id="ovScene"></span></button>
+    <button class="opt" type="button" data-pop="sh"><span class="ol">สปีด</span><span class="ov" id="ovSh"></span></button>
+    <button class="opt" type="button" data-pop="ec"><span class="ol">ชดเชยแสง</span><span class="ov" id="ovEc"></span></button>
+  </div>
   </div>
   <div class="vf-wrap" id="vfWrap">
     <div class="vf" id="vf">
@@ -164,12 +181,6 @@ body{margin:0;background:var(--body);color:var(--fg);font-family:var(--f-body);f
       <div class="native" id="nativeMsg" hidden><b>เลือกฟิล์มด้านล่าง</b><span>เลือกสภาพแสง ตั้งสปีดกับรูรับแสง แล้วกดชัตเตอร์เพื่อถ่ายด้วยกล้องของเครื่อง · สปีด A = ให้กล้องเลือกสปีด ดูค่าที่เลือกได้ใต้ชื่อฟิล์ม</span></div>
       <div class="flash" id="flash"></div>
     </div>
-  </div>
-  <div class="opts" id="opts">
-    <button class="opt" type="button" data-pop="film"><span class="ol">ฟิล์ม</span><span class="ov" id="ovFilm"></span></button>
-    <button class="opt" type="button" data-pop="scene"><span class="ol">แสง</span><span class="ov" id="ovScene"></span></button>
-    <button class="opt" type="button" data-pop="sh"><span class="ol">สปีด</span><span class="ov" id="ovSh"></span></button>
-    <button class="opt" type="button" data-pop="ec"><span class="ol">ชดเชยแสง</span><span class="ov" id="ovEc"></span></button>
   </div>
   <div class="controls">
     <button class="thumb" id="thumb" disabled aria-label="ดูรูปล่าสุด"></button>
@@ -370,7 +381,7 @@ document.querySelectorAll('.opt').forEach(b=>b.addEventListener('click',()=>open
 $('popBack').addEventListener('click',closePop);$('popClose').addEventListener('click',closePop);
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closePop();});
 document.querySelector('.pop-body').addEventListener('click',e=>{if(e.target.closest('.chip,.echip'))setTimeout(closePop,140);});
-function updateMeta(){$('filmMeta').textContent=`ISO ${filmIso()} · เกรน ${dots(cur().g)}${cur().h?' · halation':''}`;
+function updateMeta(){$('filmMeta').textContent=`ISO ${filmIso()}${cur().h?' · halation':''}`;
   const pl=exposurePlan(null),[sh,cls]=steady(pl.t);liveGain=pl.gain;
   const auto=!SH[shIdx][1],m=$('meter');m.innerHTML='';
   const add=(t,c)=>{const e=document.createElement(c?'span':'span');if(c)e.className=c;e.textContent=t;m.appendChild(e);};
