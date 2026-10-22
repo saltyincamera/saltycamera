@@ -115,9 +115,11 @@ body{margin:0;background:var(--body);color:var(--fg);font-family:var(--f-body);f
 .review .top>div:first-child{min-width:0;flex:1 1 auto}
 .review .top .round{flex:0 0 auto}
 .review .film-meta{white-space:normal;line-height:1.5}
+.review .film-meta:empty,.review .meta:empty{display:none}
 .review .pic{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;position:relative;touch-action:none}
 .review .pic img{max-width:100%;max-height:100%;border-radius:4px;display:block}
-.review .row{display:grid;grid-template-columns:1fr 2fr;gap:10px}
+.review .row{display:grid;grid-template-columns:minmax(max-content,1fr) 2fr;gap:10px}
+.review .row .btn{white-space:nowrap;padding-inline:14px}
 .review .meta{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);text-align:center;letter-spacing:.04em}
 .busy{position:fixed;inset:0;z-index:30;display:grid;place-items:center;background:rgba(13,11,10,.78);font-family:var(--f-mono);font-size:13px;letter-spacing:.08em;color:var(--rebate)}
 .busy div{display:flex;flex-direction:column;align-items:center;gap:12px}
@@ -152,7 +154,8 @@ body{margin:0;background:var(--body);color:var(--fg);font-family:var(--f-body);f
   .review .top{grid-area:top}
   .review .pic{grid-area:pic}
   .review .meta{grid-area:meta;align-self:start;text-align:left}
-  .review .row{grid-area:row}
+  .review .row{grid-area:row;align-self:end}
+  .review .row .btn{padding-block:12px}
 }
 </style>
 <link rel="icon" href="favicon.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.json"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"></head>
@@ -566,9 +569,7 @@ function alertBox(t){$('revInfo').textContent=t;}
 
 /* ===== review + save ===== */
 function openReview(){$('review').hidden=false;$('revImg').src=last.url;$('revName').textContent=last.film.name;
-  const pl=last.plan,[sh]=steady(pl.t);
-  $('revMeta').textContent=`ISO ${last.iso} · ${last.auto?'A ':''}${fmtT(pl.t)} · f/${fmtN(pl.N)}${Math.abs(pl.ec)>1e-6?' · '+ecLabel(pl.ec)+' EV':''} · ${verdictOf(pl.dev)} · ${sh}`;
-  $('revInfo').textContent=(pl.src==='exif'?'วัดแสงจากรูปจริง':`คิดแสงจากสภาพ ${last.scene}`)+' · กดค้างที่รูปเพื่อเทียบกับต้นฉบับ';
+  $('revMeta').textContent='';$('revInfo').textContent='';
   if(stream){cancelAnimationFrame(raf);}}
 function closeReview(){$('review').hidden=true;if(nativeMode)return;if(stream){raf=requestAnimationFrame(draw);}else if(wasLive){wasLive=false;startCam();}else $('start').hidden=false;}
 $('thumb').addEventListener('click',()=>last&&openReview());
