@@ -442,10 +442,7 @@ hold($('vf'),()=>{bypass=true;$('origTag').hidden=false;},()=>{bypass=false;$('o
 /* ===== capture ===== */
 const busy=(on,t)=>{$('busy').hidden=!on;if(t)$('busyText').textContent=t;};
 const toBlob=(c,q)=>new Promise(r=>c.toBlob(r,'image/jpeg',q));
-async function grabFull(){const vid=$('vid'),track=stream&&stream.getVideoTracks()[0];
-  if(track&&'ImageCapture' in window&&facing==='environment'){try{const ic=new ImageCapture(track);
-    const blob=await Promise.race([ic.takePhoto(),new Promise((_,j)=>setTimeout(()=>j(new Error('t')),4000))]);
-    const bmp=await createImageBitmap(blob);if(bmp.width>=vid.videoWidth)return bmp;}catch(e){}}
+function grabFull(){const vid=$('vid');
   const c=document.createElement('canvas');c.width=vid.videoWidth;c.height=vid.videoHeight;c.getContext('2d').drawImage(vid,0,0);return c;}
 function toData(src){const w=src.width||src.naturalWidth,h=src.height||src.naturalHeight,k=Math.min(1,6000/Math.max(w,h));
   const c=document.createElement('canvas');c.width=Math.round(w*k);c.height=Math.round(h*k);const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(src,0,0,c.width,c.height);return x.getImageData(0,0,c.width,c.height);}
@@ -460,9 +457,15 @@ async function develop(srcImg,exif){busy(true,'กำลังล้างฟิ
       name:`${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}_${f.name.replace(/[^\w]+/g,'-').replace(/^-|-$/g,'')}.jpg`};
     $('thumb').style.backgroundImage=`url(${last.url})`;$('thumb').disabled=false;openReview();
   }catch(e){alertBox('ล้างรูปไม่สำเร็จ: '+(e.message||e));}finally{busy(false);}}
-$('shutter').addEventListener('click',async()=>{if(nativeMode||!stream){$('shoot').click();return;}$('shutter').disabled=true;
+let shooting=false;
+async function fire(){if(nativeMode||!stream){$('shoot').click();return;}if(shooting)return;shooting=true;
+  const src=grabFull();                       // the frame is taken right here, at the moment of the press
+  if(navigator.vibrate)try{navigator.vibrate(12);}catch(e){}
   const fl=$('flash');fl.classList.add('on');requestAnimationFrame(()=>requestAnimationFrame(()=>fl.classList.remove('on')));
-  try{const src=await grabFull();await develop(src);}finally{$('shutter').disabled=false;}});
+  $('shutter').disabled=true;
+  try{await develop(src);}finally{$('shutter').disabled=false;shooting=false;}}
+$('shutter').addEventListener('pointerdown',e=>{if(e.button>0)return;e.preventDefault();if(nativeMode||!stream)return;fire();});
+$('shutter').addEventListener('click',e=>{if(nativeMode||!stream){$('shoot').click();return;}if(e.detail===0)fire();});  // keyboard / accessibility
 const onPick=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;if(!nativeMode&&!stream)enterNative();
   try{const exif=await readExif(file);const bmp=await createImageBitmap(file,{imageOrientation:'from-image'}).catch(()=>createImageBitmap(file));$('start').hidden=true;await develop(bmp,exif);}
   catch(err){if(nativeMode){$('nativeMsg').querySelector('span').textContent='เปิดรูปนี้ไม่ได้ ลองถ่ายใหม่อีกครั้ง';}else $('startNote').innerHTML='<span class="err">เปิดรูปนี้ไม่ได้</span> ลองถ่ายใหม่อีกครั้ง';}};
