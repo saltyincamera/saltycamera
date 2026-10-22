@@ -706,7 +706,7 @@ $('rSave').addEventListener('click',()=>{const list=roll.filter(s=>picked.has(s.
 
 /* ===== single photo ===== */
 function openShot(sh){current=sh;$('review').hidden=false;$('revImg').src=urlOf(sh,'blob');$('revName').textContent=sh.film;
-  $('revMeta').textContent=`ISO ${sh.iso} · ${fmtT(sh.t)} · f/${fmtN(sh.N)}`;$('revInfo').textContent='';resetRevDel();}
+  $('revMeta').textContent=`ISO ${sh.iso} · ${fmtT(sh.t)} · f/${fmtN(sh.N)} · ${sh.w}×${sh.h} (${(sh.w*sh.h/1e6).toFixed(1)} MP)`;$('revInfo').textContent='';resetRevDel();}
 function closeShot(){$('review').hidden=true;current=null;drawRoll();}
 $('revClose').addEventListener('click',closeShot);
 let revArmed=0;function resetRevDel(){clearTimeout(revArmed);revArmed=0;const b=$('revAgain');b.textContent='ลบ';b.classList.remove('danger');}
