@@ -1,0 +1,210 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body>
+<title>สูตรฟิล์ม X100VI</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bai+Jamjuree:wght@500;600;700&family=IBM+Plex+Sans+Thai:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: film picker (grouped by maker) beside a settings card laid out like the camera's I.Q. menu */
+:root{
+  --bg:#efede9; --panel:#fbfaf8; --fg:#1c1b19; --muted:#6c675f; --line:#d9d4cc; --row:#f3f1ec;
+  --accent:#b8521b; --accent-soft:#f6e3d6; --ink-on-accent:#fff8f2;
+  --f-display:"Bai Jamjuree","IBM Plex Sans Thai",system-ui,sans-serif;
+  --f-body:"IBM Plex Sans Thai",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#161718; --panel:#1f2022; --fg:#ebe7e1; --muted:#9a948b; --line:#33353a; --row:#26282b;
+  --accent:#ec8046; --accent-soft:#3a2619; --ink-on-accent:#1a0e06; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#161718; --panel:#1f2022; --fg:#ebe7e1; --muted:#9a948b; --line:#33353a; --row:#26282b;
+  --accent:#ec8046; --accent-soft:#3a2619; --ink-on-accent:#1a0e06; color-scheme:dark}
+[hidden]{display:none!important}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--f-body);font-size:15px;line-height:1.55;margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1180px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:baseline;gap:6px 20px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(26px,4vw,34px);line-height:1.15;margin:0;text-wrap:balance}
+h1 span{color:var(--accent)}
+header p{margin:0;color:var(--muted);max-width:62ch;font-size:14px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:18px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.picker{display:flex;flex-direction:column;gap:14px}
+.search{font:inherit;font-size:15px;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+.picker #groups{display:flex;flex-direction:column;gap:16px}
+.group h2{font-family:var(--f-mono);font-weight:500;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{appearance:none;font:inherit;font-size:13.5px;color:var(--fg);background:var(--panel);border:1px solid var(--line);border-radius:999px;
+  padding:6px 12px 6px 6px;display:inline-flex;align-items:center;gap:8px;cursor:pointer;text-align:left}
+.chip:hover{border-color:var(--muted)}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft);font-weight:600}
+.sw{display:inline-flex;width:28px;height:18px;border-radius:999px;overflow:hidden;flex:0 0 auto}
+.sw i{flex:1}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;position:sticky;top:16px}
+@media (max-width:860px){.card{position:static}}
+.card-head{padding:18px 18px 14px;display:flex;flex-direction:column;gap:8px;border-bottom:1px solid var(--line)}
+.card-head .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.card-head h3{font-family:var(--f-display);font-weight:700;font-size:24px;line-height:1.15;margin:0;text-wrap:balance}
+.meta{font-family:var(--f-mono);font-size:12px;color:var(--muted);letter-spacing:.04em}
+.bigsw{display:flex;height:10px;border-radius:999px;overflow:hidden}
+.bigsw i{flex:1}
+.traits{display:flex;flex-wrap:wrap;gap:6px}
+.trait{font-size:12.5px;padding:2px 9px;border-radius:999px;background:var(--row);color:var(--fg)}
+.btn{appearance:none;font:inherit;font-weight:600;font-size:13.5px;border-radius:9px;padding:8px 12px;cursor:pointer;border:1px solid var(--accent);background:var(--accent);color:var(--ink-on-accent);white-space:nowrap}
+.btn:hover{filter:brightness(1.06)}
+.menu{display:flex;flex-direction:column}
+.sec{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:12px 18px 6px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:12px;align-items:baseline;padding:9px 18px;border-top:1px solid var(--line)}
+.row:nth-child(even){background:var(--row)}
+.row .k{font-size:14px}
+.row .k small{display:block;color:var(--muted);font-size:12px}
+.row .v{font-family:var(--f-mono);font-weight:600;font-size:14.5px;text-align:right;font-variant-numeric:tabular-nums}
+.row .v.hl{color:var(--accent)}
+.notes{padding:14px 18px 18px;display:flex;flex-direction:column;gap:10px;border-top:1px solid var(--line)}
+.note{font-size:13.5px;margin:0;border-left:2px solid var(--accent);padding-left:10px;color:var(--fg)}
+.note.muted{border-left-color:var(--line);color:var(--muted)}
+.how{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px 18px;display:flex;flex-direction:column;gap:8px}
+.how h2{font-family:var(--f-display);font-size:18px;margin:0}
+.how ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;font-size:14px}
+.how code{font-family:var(--f-mono);font-size:12.5px;background:var(--row);padding:1px 5px;border-radius:4px}
+.toast{font-size:12.5px;color:var(--accent);min-height:1em}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>สูตรฟิล์ม <span>X100VI</span></h1>
+    <p>เลือกฟิล์ม แล้วตั้งค่าตามการ์ดในเมนู I.Q. ของกล้อง สูตรทั้ง 28 ตัวคำนวณจากชาร์ตเปรียบเทียบที่ถ่ายฉากเดียวกัน เกรนอิงทั้งชาร์ตและ datasheet ของผู้ผลิต</p>
+  </header>
+
+  <div class="grid">
+    <section class="picker" aria-label="เลือกฟิล์ม">
+      <input type="search" class="search" id="q" placeholder="ค้นหา เช่น Portra, Superia, 800" aria-label="ค้นหาฟิล์ม">
+      <div id="groups"></div>
+    </section>
+
+    <article class="card" id="card" aria-live="polite">
+      <div class="card-head">
+        <div class="top">
+          <div>
+            <h3 id="name"></h3>
+            <div class="meta" id="meta"></div>
+          </div>
+          <button class="btn" id="copy">คัดลอกสูตร</button>
+        </div>
+        <div class="bigsw" id="bigsw" aria-hidden="true"></div>
+        <div class="traits" id="traits"></div>
+        <div class="toast" id="toast"></div>
+      </div>
+      <div class="menu" id="menu"></div>
+      <div class="notes" id="notes"></div>
+    </article>
+  </div>
+
+  <section class="how">
+    <h2>บันทึกสูตรลงกล้อง X100VI</h2>
+    <ol>
+      <li>กด <code>MENU/OK</code> ไปที่แท็บ <code>I.Q.</code> (IMAGE QUALITY SETTING)</li>
+      <li>เลือก <code>EDIT/SAVE CUSTOM SETTING</code> แล้วเลือกช่อง <code>C1</code>–<code>C7</code></li>
+      <li>ตั้งค่าทีละบรรทัดตามการ์ดด้านบน แล้วกดบันทึก ตั้งชื่อช่องเป็นชื่อฟิล์มได้ (EDIT CUSTOM NAME)</li>
+      <li>เรียกใช้สูตรผ่าน <code>Q</code> menu หรือ <code>SELECT CUSTOM SETTING</code> ส่วน ISO และชดเชยแสงตั้งตอนถ่ายจากวงแหวนบนตัวกล้อง</li>
+    </ol>
+    <p class="note muted">กล้องเก็บได้ครั้งละ 7 สูตร ถ้าอยากสลับชุด ให้ใช้แอป FUJIFILM XApp สำรองค่ากล้องไว้แต่ละชุด</p>
+  </section>
+</div>
+
+<script>
+(()=>{
+const R=[{"name":"Cinestill 50D","iso":50,"sim":"Eterna","grain":"Off","gsize":"—","cce":"Weak","fxb":"Weak","wb":"Daylight","R":-1,"B":-1,"dr":"DR400","H":-0.5,"S":0.0,"color":1,"sharp":-1,"nr":-4,"clarity":-2,"ec":1,"g":0.64,"h":0.55,"sw":["#3f432b","#98a38d","#dbe0e6"],"src":"chart","dm":[3.2,-3.5,-0.6],"k":[0.88,0.83,1.0]},{"name":"Fujichrome Velvia 50","iso":50,"sim":"Velvia","grain":"Weak","gsize":"Small","cce":"Strong","fxb":"Strong","wb":"Daylight","R":-2,"B":2,"dr":"DR200","H":0.0,"S":0.5,"color":2,"sharp":0,"nr":-4,"clarity":0,"ec":-2,"g":2.81,"h":0,"sw":["#252d23","#76786c","#dad3d7"],"src":"rms","dm":[-6.4,-0.2,-3.7],"k":[0.95,1.23,1.03]},{"name":"Kodak Proimage 100","iso":100,"sim":"Classic Chrome","grain":"Strong","gsize":"Small","cce":"Strong","fxb":"Off","wb":"Daylight","R":4,"B":-6,"dr":"DR400","H":0.0,"S":0.5,"color":2,"sharp":-1,"nr":-4,"clarity":0,"ec":0,"g":3.81,"h":0,"sw":["#3b321d","#a09b81","#e3e5e4"],"src":"pgi","dm":[1.1,0.3,2.2],"k":[0.99,0.86,1.03]},{"name":"Kodak Ektar 100","iso":100,"sim":"Velvia","grain":"Weak","gsize":"Small","cce":"Strong","fxb":"Weak","wb":"Daylight","R":-1,"B":-1,"dr":"DR200","H":0.5,"S":1.0,"color":1,"sharp":0,"nr":-4,"clarity":0,"ec":0,"g":2.47,"h":0,"sw":["#222a21","#959785","#e7eeee"],"src":"pgi","dm":[-0.2,-2.0,-2.9],"k":[1.1,1.12,1.03]},{"name":"Fujicolor 100 Japan","iso":100,"sim":"Classic Negative","grain":"Weak","gsize":"Small","cce":"Weak","fxb":"Weak","wb":"Daylight","R":1,"B":-2,"dr":"DR400","H":0.5,"S":0.5,"color":1,"sharp":-1,"nr":-4,"clarity":0,"ec":2,"g":2.71,"h":0,"sw":["#2f2e1e","#aba188","#ecebe7"],"src":"chart","dm":[1.9,0.0,1.3],"k":[1.06,0.96,0.94]},{"name":"Fujicolor 100 Superia","iso":100,"sim":"Reala Ace","grain":"Strong","gsize":"Small","cce":"Weak","fxb":"Weak","wb":"Daylight","R":1,"B":-2,"dr":"DR400","H":0.5,"S":0.5,"color":1,"sharp":-1,"nr":-4,"clarity":0,"ec":0,"g":3.43,"h":0,"sw":["#2f2e1f","#ac9f82","#eae9e3"],"src":"rms","dm":[1.5,0.5,2.3],"k":[1.05,0.99,0.99]},{"name":"Fujichrome Provia 100F","iso":100,"sim":"Provia","grain":"Strong","gsize":"Small","cce":"Strong","fxb":"Weak","wb":"Daylight","R":-2,"B":3,"dr":"DR200","H":0.0,"S":0.5,"color":2,"sharp":0,"nr":-4,"clarity":0,"ec":-1,"g":3.05,"h":0,"sw":["#1b2a22","#84837d","#dfdce1"],"src":"rms","dm":[-4.4,-0.2,-5.7],"k":[1.02,1.29,1.06]},{"name":"Agfa Precisa CT 100","iso":100,"sim":"Provia","grain":"Strong","gsize":"Small","cce":"Strong","fxb":"Weak","wb":"Daylight","R":-2,"B":2,"dr":"DR200","H":0.0,"S":0.5,"color":2,"sharp":0,"nr":-4,"clarity":0,"ec":-2,"g":3.25,"h":0,"sw":["#202e23","#7b8275","#dad6df"],"src":"rms","dm":[-4.9,-1.6,-4.7],"k":[0.97,1.25,1.09]},{"name":"Lomography Color 100","iso":100,"sim":"Nostalgic Neg.","grain":"Strong","gsize":"Small","cce":"Weak","fxb":"Off","wb":"Daylight","R":2,"B":-2,"dr":"DR400","H":0.0,"S":0.0,"color":1,"sharp":-1,"nr":-4,"clarity":-1,"ec":1,"g":3.25,"h":0,"sw":["#3b2d1c","#a49b83","#e2e6e5"],"src":"chart","dm":[0.8,1.8,1.4],"k":[1.02,0.84,1.03]},{"name":"Kodak Portra 160","iso":160,"sim":"Classic Chrome","grain":"Strong","gsize":"Small","cce":"Weak","fxb":"Off","wb":"Daylight","R":3,"B":-5,"dr":"DR400","H":-0.5,"S":-0.5,"color":0,"sharp":-2,"nr":-4,"clarity":-2,"ec":1,"g":3.51,"h":0,"sw":["#312a1b","#9e9a7b","#e7e8e7"],"src":"pgi","dm":[0.0,-0.1,1.7],"k":[1.06,0.86,1.01]},{"name":"Kodak ColorPlus","iso":200,"sim":"Classic Chrome","grain":"Strong","gsize":"Small","cce":"Strong","fxb":"Off","wb":"Daylight","R":4,"B":-6,"dr":"DR400","H":0.0,"S":0.5,"color":2,"sharp":-1,"nr":-4,"clarity":0,"ec":1,"g":4.1,"h":0,"sw":["#3f3320","#a89e81","#e4e7e7"],"src":"chart","dm":[2.0,1.5,2.2],"k":[0.99,0.85,1.14]},{"name":"Kodak Gold 200","iso":200,"sim":"Classic Chrome","grain":"Weak","gsize":"Large","cce":"Strong","fxb":"Off","wb":"Daylight","R":5,"B":-5,"dr":"DR400","H":0.0,"S":0.5,"color":2,"sharp":-1,"nr":-4,"clarity":0,"ec":0,"g":4.3,"h":0,"sw":["#3b2f1f","#a9987b","#e4e6e4"],"src":"pgi","dm":[0.8,2.4,2.5],"k":[1.01,0.87,1.12]},{"name":"Fujicolor C200","iso":200,"sim":"Classic Negative","grain":"Weak","gsize":"Large","cce":"Weak","fxb":"Weak","wb":"Daylight","R":1,"B":-2,"dr":"DR400","H":0.5,"S":0.5,"color":1,"sharp":-1,"nr":-4,"clarity":0,"ec":0,"g":4.21,"h":0,"sw":["#252917","#93856b","#e9e6e1"],"src":"rms","dm":[-2.9,-0.1,2.5],"k":[1.06,1.03,0.97]},{"name":"Agfa Vista 200","iso":200,"sim":"Classic Negative","grain":"Strong","gsize":"Small","cce":"Weak","fxb":"Weak","wb":"Daylight","R":1,"B":-3,"dr":"DR400","H":0.0,"S":0.0,"color":1,"sharp":-1,"nr":-4,"clarity":0,"ec":0,"g":4.06,"h":0,"sw":["#272b19","#97896b","#e8e4dd"],"src":"rms","dm":[-2.3,-0.2,3.4],"k":[1.04,1.07,0.99]},{"name":"Kodak Ultramax 400","iso":400,"sim":"Classic Chrome","grain":"Strong","gsize":"Large","cce":"Strong","fxb":"Off","wb":"Daylight","R":3,"B":-5,"dr":"DR400","H":0.5,"S":1.0,"color":2,"sharp":-1,"nr":-4,"clarity":0,"ec":0,"g":5.14,"h":0,"sw":["#322a1c","#9b947d","#e5eae6"],"src":"pgi","dm":[-0.4,0.7,0.5],"k":[1.05,0.93,1.06]},{"name":"Kodak Portra 400","iso":400,"sim":"Classic Chrome","grain":"Weak","gsize":"Large","cce":"Weak","fxb":"Off","wb":"Daylight","R":3,"B":-4,"dr":"DR400","H":-1.0,"S":-1.0,"color":1,"sharp":-2,"nr":-4,"clarity":-2,"ec":1,"g":4.45,"h":0,"sw":["#39301d","#a39882","#e4eaeb"],"src":"pgi","dm":[1.1,1.3,0.7],"k":[1.02,0.82,1.06]},{"name":"Fujicolor 400 Japan","iso":400,"sim":"Classic Negative","grain":"Strong","gsize":"Large","cce":"Weak","fxb":"Weak","wb":"Daylight","R":1,"B":-2,"dr":"DR400","H":0.0,"S":0.0,"color":1,"sharp":-1,"nr":-4,"clarity":0,"ec":1,"g":4.99,"h":0,"sw":["#2d3018","#958b71","#e4e4e8"],"src":"chart","dm":[-1.5,-0.4,1.8],"k":[1.01,0.97,1.12]},{"name":"Fujicolor X-tra 400","iso":400,"sim":"Classic Negative","grain":"Weak","gsize":"Large","cce":"Weak","fxb":"Weak","wb":"Daylight","R":1,"B":-2,"dr":"DR400","H":0.0,"S":0.0,"color":1,"sharp":-1,"nr":-4,"clarity":0,"ec":0,"g":4.39,"h":0,"sw":["#2d2f18","#958a70","#e2e2e2"],"src":"rms","dm":[-2.0,-0.2,2.1],"k":[1.0,0.99,1.05]},{"name":"Fujicolor Premium 400","iso":400,"sim":"Classic Negative","grain":"Strong","gsize":"Large","cce":"Weak","fxb":"Weak","wb":"Daylight","R":0,"B":-2,"dr":"DR400","H":0.0,"S":0.0,"color":1,"sharp":-1,"nr":-4,"clarity":0,"ec":0,"g":4.92,"h":0,"sw":["#2b301a","#8d8771","#e5e3e1"],"src":"chart","dm":[-2.2,-1.2,1.8],"k":[1.0,1.06,0.94]},{"name":"Fujicolor Pro 400H","iso":400,"sim":"Pro Neg. Std","grain":"Strong","gsize":"Small","cce":"Off","fxb":"Weak","wb":"Daylight","R":-1,"B":2,"dr":"DR400","H":-1.5,"S":-1.5,"color":1,"sharp":-1,"nr":-4,"clarity":-1,"ec":2,"g":4.13,"h":0,"sw":["#3d3924","#9a988e","#d9dde8"],"src":"rms","dm":[0.7,0.8,-3.0],"k":[0.92,0.95,1.03]},{"name":"Agfa Vista 400","iso":400,"sim":"Classic Negative","grain":"Weak","gsize":"Large","cce":"Weak","fxb":"Weak","wb":"Daylight","R":0,"B":-2,"dr":"DR400","H":0.0,"S":0.0,"color":1,"sharp":-1,"nr":-4,"clarity":0,"ec":1,"g":4.26,"h":0,"sw":["#2d331a","#958e78","#e0e2e6"],"src":"rms","dm":[-1.2,-1.4,0.8],"k":[0.98,0.94,1.02]},{"name":"Hillvale Sunny 16","iso":200,"sim":"Classic Chrome","grain":"Strong","gsize":"Large","cce":"Weak","fxb":"Off","wb":"Daylight","R":2,"B":-4,"dr":"DR400","H":-0.5,"S":-0.5,"color":1,"sharp":-1,"nr":-4,"clarity":0,"ec":0,"g":4.97,"h":0,"sw":["#32381d","#98907d","#e1e2e6"],"src":"chart","dm":[-0.0,-1.1,1.0],"k":[0.95,0.93,1.01]},{"name":"Lomography Color 400","iso":400,"sim":"Nostalgic Neg.","grain":"Weak","gsize":"Large","cce":"Weak","fxb":"Off","wb":"Daylight","R":1,"B":-3,"dr":"DR400","H":0.0,"S":0.0,"color":0,"sharp":-1,"nr":-4,"clarity":-1,"ec":2,"g":4.43,"h":0,"sw":["#3b3423","#a8a38e","#e9ede7"],"src":"chart","dm":[3.2,0.1,1.1],"k":[1.02,0.96,0.84]},{"name":"CineStill 800T (Over+1)","iso":400,"sim":"Eterna","grain":"Strong","gsize":"Small","cce":"Weak","fxb":"Weak","wb":"Daylight","R":-1,"B":2,"dr":"DR400","H":-0.5,"S":0.0,"color":2,"sharp":-1,"nr":-4,"clarity":-2,"ec":1,"g":3.49,"h":1.0,"sw":["#493b32","#a3a79b","#e2e8eb"],"src":"chart","dm":[4.4,1.5,-3.6],"k":[0.94,1.08,0.9]},{"name":"CineStill 800T","iso":800,"sim":"Eterna","grain":"Strong","gsize":"Small","cce":"Weak","fxb":"Weak","wb":"Daylight","R":1,"B":2,"dr":"DR400","H":-0.5,"S":0.0,"color":2,"sharp":-1,"nr":-4,"clarity":-2,"ec":0,"g":3.52,"h":1.0,"sw":["#4f332e","#9e9688","#d0d9d8"],"src":"chart","dm":[0.2,4.4,-1.9],"k":[0.88,1.14,0.85]},{"name":"Kodak Portra 800","iso":800,"sim":"Classic Chrome","grain":"Weak","gsize":"Large","cce":"Weak","fxb":"Off","wb":"Daylight","R":1,"B":-4,"dr":"DR400","H":-1.0,"S":-1.0,"color":0,"sharp":-2,"nr":-4,"clarity":-2,"ec":1,"g":4.64,"h":0,"sw":["#353624","#9b9a8b","#e2e8e8"],"src":"pgi","dm":[1.5,-1.1,-1.3],"k":[0.99,0.99,0.87]},{"name":"Lomography Color 800","iso":800,"sim":"Classic Chrome","grain":"Strong","gsize":"Large","cce":"Weak","fxb":"Off","wb":"Daylight","R":2,"B":-3,"dr":"DR400","H":0.0,"S":0.0,"color":0,"sharp":-1,"nr":-4,"clarity":0,"ec":1,"g":4.91,"h":0,"sw":["#3a3825","#9e9c8a","#e4eae9"],"src":"chart","dm":[2.5,-1.0,-0.3],"k":[0.98,0.96,0.89]},{"name":"Fujicolor Natura 1600","iso":1600,"sim":"Classic Negative","grain":"Strong","gsize":"Large","cce":"Weak","fxb":"Weak","wb":"Daylight","R":-1,"B":-1,"dr":"DR400","H":0.0,"S":0.0,"color":0,"sharp":-1,"nr":-4,"clarity":0,"ec":2,"g":5.19,"h":0,"sw":["#333724","#a7a294","#e9eef1"],"src":"rms","dm":[3.4,-0.9,-1.6],"k":[1.02,0.99,0.84]}];
+const $=id=>document.getElementById(id);
+const brand=n=>/^Kodak/.test(n)?'Kodak':/^Fuji/.test(n)?'Fujifilm':/^Cine/i.test(n)?'CineStill':/^Agfa/.test(n)?'Agfa':/^Lomo/.test(n)?'Lomography':'อื่นๆ';
+const ORDER=['Kodak','Fujifilm','CineStill','Agfa','Lomography','อื่นๆ'];
+const sgn=v=>(v>0?'+':v<0?'−':'±')+Math.abs(v);
+const sgnH=v=>v===0?'±0':(v>0?'+':'−')+(Math.abs(v)%1?Math.abs(v).toFixed(1):Math.abs(v));
+const ec=t=>{if(t===0)return '±0';const s=t>0?'+':'−',a=Math.abs(t),w=Math.floor(a/3),r=a%3;return s+(w?w+(r?' ':''):'')+(r?r+'/3':'')+' EV';};
+const drIso={DR100:'',DR200:'ต้องใช้ ISO 250 ขึ้นไป',DR400:'ต้องใช้ ISO 500 ขึ้นไป'};
+let sel=Math.max(0,R.findIndex(r=>r.name==='Kodak Portra 400'));
+try{const s=localStorage.getItem('x100vi.sel');if(s!==null&&R[+s])sel=+s;}catch(e){}
+
+function traits(r){const t=[],[dL,da,db]=r.dm,[kL,ka,kb]=r.k,ks=(ka+kb)/2;
+  if(db>1.5)t.push('อุ่น');else if(db<-1.5)t.push('เย็น');
+  if(da>1.5)t.push('อมแดง-ม่วง');else if(da<-1.5)t.push('อมเขียว');
+  if(ks>1.05)t.push('สีอิ่ม');else if(ks<0.95)t.push('สีนุ่ม');
+  if(kL>1.04)t.push('คอนทราสต์สูง');else if(kL<0.96)t.push('คอนทราสต์ต่ำ');
+  if(dL>2)t.push('สว่างโปร่ง');else if(dL<-3)t.push('เข้ม');
+  t.push(r.g<3?'เกรนละเอียด':r.g<4.6?'เกรนปานกลาง':'เกรนชัด');
+  return t;}
+
+function rows(r){return [
+  ['ภาพ',null],
+  ['Film Simulation','',r.sim,true],
+  ['Grain Effect','ความแรง / ขนาดเม็ด',r.grain==='Off'?'Off':`${r.grain}, ${r.gsize}`],
+  ['Color Chrome Effect','',r.cce],
+  ['Color Chrome FX Blue','',r.fxb],
+  ['Smooth Skin Effect','','Off'],
+  ['White Balance','',`${r.wb}`],
+  ['WB Shift','R (แดง) / B (น้ำเงิน)',`R ${sgn(r.R)}  B ${sgn(r.B)}`,true],
+  ['Dynamic Range','',r.dr],
+  ['D Range Priority','','Off'],
+  ['โทนและสี',null],
+  ['Highlight','',sgnH(r.H)],
+  ['Shadow','',sgnH(r.S)],
+  ['Color','',sgn(r.color)],
+  ['Sharpness','',sgn(r.sharp)],
+  ['High ISO NR','',sgn(r.nr)],
+  ['Clarity','',sgn(r.clarity)],
+  ['ตอนถ่าย',null],
+  ['ISO','ความไวของฟิล์มจริงคือ '+r.iso,r.dr==='DR400'?'Auto, 500–6400':r.dr==='DR200'?'Auto, 250–6400':'Auto'],
+  ['Exposure Comp.','ชดเชยแสงจากวงแหวน',ec(r.ec)],
+];}
+
+function render(){const r=R[sel];
+  $('name').textContent=r.name;
+  $('meta').textContent=`ฟิล์ม ISO ${r.iso} · เกรน ${r.g.toFixed(1)}${r.src==='chart'?'':' (ชาร์ต + datasheet)'}`;
+  $('bigsw').innerHTML=r.sw.map(c=>`<i style="background:${c}"></i>`).join('');
+  $('traits').innerHTML='';traits(r).forEach(t=>{const s=document.createElement('span');s.className='trait';s.textContent=t;$('traits').appendChild(s);});
+  const m=$('menu');m.innerHTML='';
+  for(const [k,sub,v,hl] of rows(r)){
+    if(sub===null){const d=document.createElement('div');d.className='sec';d.textContent=k;m.appendChild(d);continue;}
+    const d=document.createElement('div');d.className='row';
+    d.innerHTML=`<div class="k"></div><div class="v${hl?' hl':''}"></div>`;
+    d.querySelector('.k').textContent=k;if(sub){const s=document.createElement('small');s.textContent=sub;d.querySelector('.k').appendChild(s);}
+    d.querySelector('.v').textContent=v;m.appendChild(d);}
+  const n=$('notes');n.innerHTML='';
+  const add=(t,cls)=>{const p=document.createElement('p');p.className='note'+(cls?' '+cls:'');p.textContent=t;n.appendChild(p);};
+  if(drIso[r.dr])add(`${r.dr} ${drIso[r.dr]} ถ้าใช้ ISO ต่ำกว่านั้น กล้องจะลดเป็น DR ที่ต่ำลงเอง`);
+  if(r.h)add('CineStill มีแสงฟุ้งสีแดงรอบไฟ (halation) ซึ่งกล้องตั้งค่าเลียนแบบไม่ได้ ถ้าอยากได้ ให้ใส่ฟิลเตอร์ diffusion เช่น 1/8 Black Pro-Mist ช่วย');
+  if(/Pro 400H/.test(r.name))add('400H ภาพสวยตอนโอเวอร์ ถ้ายังทึบ ลองเพิ่มชดเชยแสงเป็น +1 EV');
+  if(/Velvia|Provia|Precisa/.test(r.name))add('ฟิล์มสไลด์รับแสงเกินได้น้อย วัดแสงที่ไฮไลต์ และอย่าชดเชยแสงไปทางบวก');
+  add('ถ้าโทนยังไม่ตรงใจ ให้แก้ WB Shift ก่อน: R เพิ่มเพื่อให้อุ่นขึ้น B ลดเพื่อให้เหลืองขึ้น แล้วค่อยปรับ Color ทีละ 1','muted');
+  [...document.querySelectorAll('.chip')].forEach(c=>c.setAttribute('aria-pressed',+c.dataset.i===sel));
+  try{localStorage.setItem('x100vi.sel',sel);}catch(e){}
+}
+
+function text(r){return [r.name+' — Fujifilm X100VI',...rows(r).filter(x=>x[1]!==null).map(([k,,v])=>`${k}: ${v}`)].join('\n');}
+
+function drawGroups(){const q=$('q').value.trim().toLowerCase(),g=$('groups');g.innerHTML='';
+  for(const b of ORDER){const items=R.map((r,i)=>[r,i]).filter(([r])=>brand(r.name)===b&&(!q||r.name.toLowerCase().includes(q)));
+    if(!items.length)continue;
+    const sec=document.createElement('div');sec.className='group';sec.innerHTML=`<h2>${b}</h2><div class="chips"></div>`;
+    const box=sec.querySelector('.chips');
+    for(const [r,i] of items){const c=document.createElement('button');c.className='chip';c.type='button';c.dataset.i=i;c.setAttribute('aria-pressed',i===sel);
+      c.innerHTML=`<span class="sw">${r.sw.map(x=>`<i style="background:${x}"></i>`).join('')}</span>`;c.append(r.name.replace(/^(Kodak|Fujicolor|Fujichrome|Agfa|Lomography) /,''));
+      c.addEventListener('click',()=>{sel=i;render();if(matchMedia('(max-width:860px)').matches)$('card').scrollIntoView({behavior:'smooth',block:'start'});});
+      box.appendChild(c);}
+    g.appendChild(sec);}
+  if(!g.children.length)g.innerHTML='<p class="note muted">ไม่พบฟิล์มชื่อนี้</p>';}
+$('q').addEventListener('input',drawGroups);
+
+$('copy').addEventListener('click',async()=>{const t=text(R[sel]);
+  try{await navigator.clipboard.writeText(t);$('toast').textContent='คัดลอกแล้ว';}
+  catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.appendChild(ta);ta.select();
+    try{document.execCommand('copy');$('toast').textContent='คัดลอกแล้ว';}catch(_){$('toast').textContent='คัดลอกไม่ได้ เลือกข้อความในการ์ดแทน';}ta.remove();}
+  setTimeout(()=>$('toast').textContent='',2000);});
+
+drawGroups();render();
+})();
+</script>
+
+</body></html>
