@@ -569,7 +569,7 @@ function alertBox(t){$('revInfo').textContent=t;}
 
 /* ===== review + save ===== */
 function openReview(){$('review').hidden=false;$('revImg').src=last.url;$('revName').textContent=last.film.name;
-  $('revMeta').textContent='';$('revInfo').textContent='';
+  const pl=last.plan;$('revMeta').textContent=`ISO ${last.iso} · ${fmtT(pl.t)} · f/${fmtN(pl.N)}`;$('revInfo').textContent='';
   if(stream){cancelAnimationFrame(raf);}}
 function closeReview(){$('review').hidden=true;if(nativeMode)return;if(stream){raf=requestAnimationFrame(draw);}else if(wasLive){wasLive=false;startCam();}else $('start').hidden=false;}
 $('thumb').addEventListener('click',()=>last&&openReview());
