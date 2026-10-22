@@ -54,6 +54,9 @@ body{margin:0;background:var(--body);color:var(--fg);font-family:var(--f-body);f
 .chip[aria-pressed="true"]{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 18%,var(--panel))}
 .expo{display:flex;flex-direction:column;gap:2px;padding:4px 0 0}
 .erow{display:flex;align-items:center;gap:6px;min-width:0}
+.meter{font-family:var(--f-mono);font-size:12.5px;color:var(--fg);margin-top:3px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meter b{color:var(--accent);font-weight:600}
+.meter .ok{color:#8fd19e}.meter .warn{color:#ffb38a}
 .elab{flex:0 0 64px;padding-left:16px;font-family:var(--f-mono);font-size:10.5px;letter-spacing:.08em;color:var(--muted)}
 .estrip{display:flex;gap:6px;overflow-x:auto;padding:4px 16px 4px 0;scrollbar-width:none;min-width:0;flex:1}
 .estrip::-webkit-scrollbar{display:none}
@@ -100,20 +103,22 @@ body{margin:0;background:var(--body);color:var(--fg);font-family:var(--f-body);f
   <div class="top">
     <div style="min-width:0">
       <div class="film-name" id="filmName">Kodak Portra 400</div>
-      <div class="film-meta" id="filmMeta">▸ 24A · เกรน ●●●●○</div>
+      <div class="film-meta" id="filmMeta">เกรน ●●●●○</div>
+      <div class="meter" id="meter"></div>
     </div>
   </div>
   <div class="vf-wrap" id="vfWrap">
     <div class="vf" id="vf">
       <canvas id="view" aria-label="ช่องมองภาพพร้อมโทนฟิล์ม"></canvas>
       <div class="orig" id="origTag" hidden>ต้นฉบับ</div>
-      <div class="hint" id="vfHint">กดค้างที่ภาพเพื่อดูต้นฉบับ · สปีด A ถ่ายจากภาพนี้ · ตั้งสปีดเองจะเปิดแอปกล้องของเครื่อง</div>
-      <div class="native" id="nativeMsg" hidden><b>เลือกฟิล์มด้านล่าง</b><span>ตั้งสปีดกับรูรับแสง แล้วกดชัตเตอร์เพื่อถ่ายด้วยกล้องของเครื่อง รูปจะกลับมาพร้อมโทนฟิล์มและความสว่างตามค่าที่ตั้ง · สปีด A = ให้กล้องเลือกสปีดเอง</span></div>
+      <div class="hint" id="vfHint">กดค้างที่ภาพเพื่อดูแบบไม่ใส่ฟิล์ม</div>
+      <div class="native" id="nativeMsg" hidden><b>เลือกฟิล์มด้านล่าง</b><span>เลือกสภาพแสง ตั้งสปีดกับรูรับแสง แล้วกดชัตเตอร์เพื่อถ่ายด้วยกล้องของเครื่อง · สปีด A = ให้กล้องเลือกสปีด ดูค่าที่เลือกได้ใต้ชื่อฟิล์ม</span></div>
       <div class="flash" id="flash"></div>
     </div>
   </div>
   <div class="strip" id="strip" role="group" aria-label="เลือกฟิล์ม"></div>
   <div class="expo">
+    <div class="erow"><span class="elab">แสง</span><div class="estrip" id="scStrip" role="group" aria-label="สภาพแสง"></div></div>
     <div class="erow"><span class="elab">สปีด</span><div class="estrip" id="shStrip" role="group" aria-label="สปีดชัตเตอร์"></div></div>
     <div class="erow"><span class="elab">รูรับแสง</span><div class="estrip" id="apStrip" role="group" aria-label="รูรับแสง"></div></div>
   </div>
@@ -272,15 +277,27 @@ const dots=g=>{const n=Math.max(1,Math.round(g/GMAX*5));return '●'.repeat(n)+'
 const ISO={"Cinestill 50D": 50, "Fujichrome Velvia 50": 50, "Kodak Proimage 100": 100, "Kodak Ektar 100": 100, "Fujicolor 100 Japan": 100, "Fujicolor 100 Superia": 100, "Fujichrome Provia 100F": 100, "Agfa Precisa CT 100": 100, "Lomography Color 100": 100, "Kodak Portra 160": 160, "Kodak ColorPlus": 200, "Kodak Gold 200": 200, "Fujicolor C200": 200, "Agfa Vista 200": 200, "Kodak Ultramax 400": 400, "Kodak Portra 400": 400, "Fujicolor 400 Japan": 400, "Fujicolor X-tra 400": 400, "Fujicolor Premium 400": 400, "Fujicolor Pro 400H": 400, "Agfa Vista 400": 400, "Hillvale Sunny 16": 200, "Lomography Color 400": 400, "CineStill 800T (Over+1)": 400, "CineStill 800T": 800, "Kodak Portra 800": 800, "Lomography Color 800": 800, "Fujicolor Natura 1600": 1600};
 const SH=[['A',0],['1/2000',1/2000],['1/1000',1/1000],['1/500',1/500],['1/250',1/250],['1/125',1/125],['1/60',1/60],['1/30',1/30],['1/15',1/15],['1/8',1/8],['1/4',1/4],['1/2',1/2],['1"',1]];
 const AP=[1.4,2,2.8,4,5.6,8,11,16];
-let shIdx=0,apIdx=5;
+const SC=[['☀️','แดดจ้า',15],['🌤','แดดอ่อน',14],['⛅','มีเมฆ',13],['🌥','ร่ม/ครึ้ม',12],['🌆','ใกล้ค่ำ',10],['💡','ในอาคารสว่าง',8],['🏠','ในบ้าน',6],['🌃','กลางคืน',4]];
+let shIdx=0,apIdx=5,scIdx=2,liveGain=1;
+try{const c=localStorage.getItem('filmcam.sc');if(c!==null&&SC[+c])scIdx=+c;}catch(e){}
 try{const a=localStorage.getItem('filmcam.sh'),b=localStorage.getItem('filmcam.ap');if(a!==null&&SH[+a])shIdx=+a;if(b!==null&&AP[+b])apIdx=+b;}catch(e){}
 const filmIso=()=>ISO[cur().name]||400;
 const fmtT=t=>t>=0.5?(Math.round(t*10)/10)+'"':'1/'+Math.round(1/t);
+/* exposure the light condition calls for (Sunny-16 style EV table) */
+const sceneT=()=>{const N=AP[apIdx];return N*N*100/(filmIso()*Math.pow(2,SC[scIdx][2]));};
+const steady=t=>t<=1/60*1.05?['ถือปกติ','ok']:t<=1/15*1.05?['ถือนิ่งๆ','warn']:t<=1/4*1.05?['พิงหรือค้ำให้นิ่ง','warn']:['ใช้ขาตั้ง','warn'];
+const verdictOf=st=>Math.abs(st)<0.34?'พอดี':st>0?`โอเวอร์ +${st.toFixed(1)}`:`อันเดอร์ ${st.toFixed(1)}`;
 function drawExpo(){
   const mk=(box,items,on,pick)=>{box.innerHTML='';items.forEach((lab,i)=>{const b=document.createElement('button');b.type='button';b.className='echip';b.textContent=lab;b.setAttribute('aria-pressed',i===on);b.addEventListener('click',()=>pick(i));box.appendChild(b);});};
+  mk($('scStrip'),SC.map(x=>x[0]+' '+x[1]),scIdx,i=>{scIdx=i;try{localStorage.setItem('filmcam.sc',i);}catch(e){}drawExpo();updateMeta();});
   mk($('shStrip'),SH.map(x=>x[0]),shIdx,i=>{shIdx=i;try{localStorage.setItem('filmcam.sh',i);}catch(e){}drawExpo();updateMeta();});
   mk($('apStrip'),AP.map(n=>'f/'+n),apIdx,i=>{apIdx=i;try{localStorage.setItem('filmcam.ap',i);}catch(e){}drawExpo();updateMeta();});}
-function updateMeta(){$('filmMeta').textContent=`ISO ${filmIso()} · ${SH[shIdx][0]==='A'?'A':SH[shIdx][0]} · f/${AP[apIdx]} · เกรน ${dots(cur().g)}${cur().h?' · halation':''}`;}
+function updateMeta(){$('filmMeta').textContent=`ISO ${filmIso()} · เกรน ${dots(cur().g)}${cur().h?' · halation':''}`;
+  const pl=exposurePlan(null),[sh,cls]=steady(pl.t);liveGain=pl.gain;
+  const auto=!SH[shIdx][1],m=$('meter');m.innerHTML='';
+  const add=(t,c)=>{const e=document.createElement(c?'span':'span');if(c)e.className=c;e.textContent=t;m.appendChild(e);};
+  const b=document.createElement('b');b.textContent=(auto?'A ':'')+fmtT(pl.t);m.appendChild(b);
+  add(` · f/${AP[apIdx]} · `);add(verdictOf(pl.stops),Math.abs(pl.stops)<0.34?'ok':'warn');add(' · ');add(sh,cls);}
 /* read the exposure the phone actually used from the photo's EXIF */
 async function readExif(file){try{const buf=await file.slice(0,262144).arrayBuffer(),v=new DataView(buf);if(v.byteLength<4||v.getUint16(0)!==0xFFD8)return null;let o=2;
   while(o+10<v.byteLength){const m=v.getUint16(o);if((m&0xFF00)!==0xFF00)return null;const len=v.getUint16(o+2);
@@ -293,11 +310,11 @@ function parseTiff(v,t){const le=v.getUint16(t)===0x4949,u16=p=>v.getUint16(p,le
   return r.t>0&&r.N>0&&r.iso>0?r:null;}
 /* exposure: compare the film exposure you chose with what the phone metered */
 function exposurePlan(exif){const iso=filmIso(),N=AP[apIdx],tSel=SH[shIdx][1];
-  if(!exif)return {gain:1,stops:0,t:tSel,known:false};
-  const cam=exif.t*exif.iso/(exif.N*exif.N);
-  if(!tSel)return {gain:1,stops:0,t:cam*N*N/iso,known:true};
-  const stops=Math.max(-5,Math.min(5,Math.log2(tSel*iso/(N*N)/cam)));
-  return {gain:Math.pow(2,stops),stops,t:tSel,known:true};}
+  const tc=exif?exif.t*exif.iso/(exif.N*exif.N)*N*N/iso:sceneT();   // 'correct' shutter for these settings
+  const src=exif?'exif':'scene';
+  if(!tSel)return {gain:1,stops:0,t:tc,known:true,src};
+  const stops=Math.max(-5,Math.min(5,Math.log2(tSel/tc)));
+  return {gain:Math.pow(2,stops),stops,t:tSel,known:true,src};}
 function applyGain(data,gain){if(Math.abs(gain-1)<0.01)return;const lut=new Uint8ClampedArray(256);
   for(let i=0;i<256;i++){let v=lin[i]*gain;if(v>0.8)v=0.8+0.2*(1-Math.exp(-(v-0.8)/0.2));lut[i]=encode(v);}
   const d=data.data;for(let i=0;i<d.length;i+=4){d[i]=lut[d[i]];d[i+1]=lut[d[i+1]];d[i+2]=lut[d[i+2]];}}
@@ -328,7 +345,8 @@ precision highp float;
 precision mediump float;
 #endif
 varying vec2 v;uniform sampler2D uVid,uLut,uCov,uMask;uniform vec3 uP[10];
-uniform float uLift,uGA,uGS,uSeed,uHal,uMir,uBypass,uClamp;uniform vec2 uMaskTexel;
+uniform float uLift,uGA,uGS,uSeed,uHal,uMir,uBypass,uClamp,uGain;uniform vec2 uMaskTexel;
+float tolin(float c){return c<=.04045?c/12.92:pow((c+.055)/1.055,2.4);}float tosrgb(float c){c=clamp(c,0.,1.);return c<=.0031308?c*12.92:1.055*pow(c,1./2.4)-.055;}float shd(float x){return x<=.8?x:.8+.2*(1.-exp(-(x-.8)/.2));}
 float h(vec2 p){p=fract(p*vec2(443.897,441.423)+uSeed);p+=dot(p,p.yx+19.19);return fract((p.x+p.y)*p.x);}
 float gs(vec2 c){return (h(c)+h(c+17.3)+h(c+41.7)+h(c+73.1)-2.)*1.7320508;}
 float covAt(vec3 c){vec3 x=clamp(c*8.-.5,0.,7.-1e-4);vec3 i=floor(x),t=x-i;float w=0.;
@@ -336,7 +354,7 @@ float covAt(vec3 c){vec3 x=clamp(c*8.-.5,0.,7.-1e-4);vec3 i=floor(x),t=x-i;float
   float s=texture2D(uCov,vec2((j.g*8.+j.b+.5)/64.,(j.r+.5)/8.)).r;vec3 ww=mix(1.-t,t,d);w+=s*ww.x*ww.y*ww.z;}return w;}
 void main(){vec2 uv=vec2(mix(v.x,1.-v.x,uMir),1.-v.y);vec3 src=texture2D(uVid,uv).rgb;
  if(uBypass>.5){gl_FragColor=vec4(src,1.);return;}
- vec3 c255=floor(src*255.+.5);
+ vec3 ex=vec3(tosrgb(shd(tolin(src.r)*uGain)),tosrgb(shd(tolin(src.g)*uGain)),tosrgb(shd(tolin(src.b)*uGain)));vec3 c255=floor(ex*255.+.5);
  vec3 col=vec3(texture2D(uLut,vec2((c255.r+.5)/256.,.5)).r,texture2D(uLut,vec2((c255.g+.5)/256.,.5)).g,texture2D(uLut,vec2((c255.b+.5)/256.,.5)).b)*255.;
  vec3 lifted=(uLift+c255*(1.-uLift/255.))/255.;float cw=covAt(lifted);
  if(cw>.01){vec3 q=col/255.;vec3 d=uP[0]+uP[1]*q.r+uP[2]*q.g+uP[3]*q.b+uP[4]*q.r*q.r+uP[5]*q.g*q.g+uP[6]*q.b*q.b+uP[7]*q.r*q.g+uP[8]*q.g*q.b+uP[9]*q.r*q.b;
@@ -388,7 +406,7 @@ function draw(){const vid=$('vid');if(!stream||vid.readyState<2){raf=requestAnim
   gl.uniform1f(U('uGA'),f.g*OPT.grain*L/(714*gsz)*grainK(L));gl.uniform1f(U('uGS'),gsz);
   frameSeed=(frameSeed+0.6180339)%1;gl.uniform1f(U('uSeed'),frameSeed);
   gl.uniform1f(U('uHal'),f.h?f.h*OPT.strength:0);gl.uniform2f(U('uMaskTexel'),1/maskW||0,1/maskH||0);
-  gl.uniform1f(U('uMir'),mir);gl.uniform1f(U('uBypass'),bypass?1:0);
+  gl.uniform1f(U('uMir'),mir);gl.uniform1f(U('uBypass'),bypass?1:0);gl.uniform1f(U('uGain'),liveGain);
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4);raf=requestAnimationFrame(draw);}
 function fitVF(){const wrap=$('vfWrap'),vf=$('vf'),W=wrap.clientWidth-20,H=wrap.clientHeight,a=canvas.width/canvas.height||0.75;
   let w=W,h=W/a;if(h>H){h=H;w=H*a;}vf.style.width=Math.floor(w)+'px';vf.style.height=Math.floor(h)+'px';}
@@ -438,11 +456,11 @@ async function develop(srcImg,exif){busy(true,'กำลังล้างฟิ
     const blob=await toBlob(c,0.94),orig=await toBlob(origC,0.85);
     if(last){URL.revokeObjectURL(last.url);URL.revokeObjectURL(last.ourl);}
     const d=new Date(),p=n=>String(n).padStart(2,'0');
-    last={blob,url:URL.createObjectURL(blob),ourl:URL.createObjectURL(orig),film:f,w:out.width,h:out.height,plan,iso:filmIso(),N:AP[apIdx],auto:!SH[shIdx][1],
+    last={blob,url:URL.createObjectURL(blob),ourl:URL.createObjectURL(orig),film:f,w:out.width,h:out.height,plan,iso:filmIso(),N:AP[apIdx],auto:!SH[shIdx][1],scene:SC[scIdx][0]+' '+SC[scIdx][1],
       name:`${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}_${f.name.replace(/[^\w]+/g,'-').replace(/^-|-$/g,'')}.jpg`};
     $('thumb').style.backgroundImage=`url(${last.url})`;$('thumb').disabled=false;openReview();
   }catch(e){alertBox('ล้างรูปไม่สำเร็จ: '+(e.message||e));}finally{busy(false);}}
-$('shutter').addEventListener('click',async()=>{if(nativeMode||!stream||SH[shIdx][1]){$('shoot').click();return;}$('shutter').disabled=true;
+$('shutter').addEventListener('click',async()=>{if(nativeMode||!stream){$('shoot').click();return;}$('shutter').disabled=true;
   const fl=$('flash');fl.classList.add('on');requestAnimationFrame(()=>requestAnimationFrame(()=>fl.classList.remove('on')));
   try{const src=await grabFull();await develop(src);}finally{$('shutter').disabled=false;}});
 const onPick=async e=>{const file=e.target.files[0];e.target.value='';if(!file)return;if(!nativeMode&&!stream)enterNative();
@@ -453,10 +471,9 @@ function alertBox(t){$('revInfo').textContent=t;}
 
 /* ===== review + save ===== */
 function openReview(){$('review').hidden=false;$('revImg').src=last.url;$('revName').textContent=last.film.name;
-  const pl=last.plan,ts=pl.t?fmtT(pl.t):'A';
-  const verdict=!pl.known?'':Math.abs(pl.stops)<0.34?' · พอดี':pl.stops>0?` · โอเวอร์ +${pl.stops.toFixed(1)}`:` · อันเดอร์ ${pl.stops.toFixed(1)}`;
-  $('revMeta').textContent=`ISO ${last.iso} · ${ts} · f/${last.N}${verdict}`;
-  $('revInfo').textContent=pl.known?'กดค้างที่รูปเพื่อเทียบกับต้นฉบับ':(last.auto?'กดค้างที่รูปเพื่อเทียบกับต้นฉบับ':'อ่านค่าแสงจากรูปนี้ไม่ได้ จึงใช้แสงตามที่มือถือวัดมา · กดค้างเพื่อเทียบต้นฉบับ');
+  const pl=last.plan,[sh]=steady(pl.t);
+  $('revMeta').textContent=`ISO ${last.iso} · ${last.auto?'A ':''}${fmtT(pl.t)} · f/${last.N} · ${verdictOf(pl.stops)} · ${sh}`;
+  $('revInfo').textContent=(pl.src==='exif'?'วัดแสงจากรูปจริง':`คิดแสงจากสภาพ ${last.scene}`)+' · กดค้างที่รูปเพื่อเทียบกับต้นฉบับ';
   if(stream){cancelAnimationFrame(raf);}}
 function closeReview(){$('review').hidden=true;if(nativeMode)return;if(stream){raf=requestAnimationFrame(draw);}else if(wasLive){wasLive=false;startCam();}else $('start').hidden=false;}
 $('thumb').addEventListener('click',()=>last&&openReview());
