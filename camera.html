@@ -147,7 +147,7 @@ body{margin:0;background:var(--body);color:var(--fg);font-family:var(--f-body);f
   <div class="expo">
     <div class="erow"><span class="elab">แสง</span><div class="estrip" id="scStrip" role="group" aria-label="สภาพแสง"></div></div>
     <div class="erow"><span class="elab">สปีด</span><div class="estrip" id="shStrip" role="group" aria-label="สปีดชัตเตอร์"></div></div>
-    <div class="erow"><span class="elab">รูรับแสง</span><div class="estrip" id="apStrip" role="group" aria-label="รูรับแสง"></div></div>
+    <div class="erow"><span class="elab">ชดเชย</span><div class="estrip" id="ecStrip" role="group" aria-label="ชดเชยแสง"></div></div>
   </div>
   <div class="controls">
     <button class="thumb" id="thumb" disabled aria-label="ดูรูปล่าสุด"></button>
@@ -303,28 +303,33 @@ const dots=g=>{const n=Math.max(1,Math.round(g/GMAX*5));return '●'.repeat(n)+'
 
 const ISO={"Cinestill 50D": 50, "Fujichrome Velvia 50": 50, "Kodak Proimage 100": 100, "Kodak Ektar 100": 100, "Fujicolor 100 Japan": 100, "Fujicolor 100 Superia": 100, "Fujichrome Provia 100F": 100, "Agfa Precisa CT 100": 100, "Lomography Color 100": 100, "Kodak Portra 160": 160, "Kodak ColorPlus": 200, "Kodak Gold 200": 200, "Fujicolor C200": 200, "Agfa Vista 200": 200, "Kodak Ultramax 400": 400, "Kodak Portra 400": 400, "Fujicolor 400 Japan": 400, "Fujicolor X-tra 400": 400, "Fujicolor Premium 400": 400, "Fujicolor Pro 400H": 400, "Agfa Vista 400": 400, "Hillvale Sunny 16": 200, "Lomography Color 400": 400, "CineStill 800T (Over+1)": 400, "CineStill 800T": 800, "Kodak Portra 800": 800, "Lomography Color 800": 800, "Fujicolor Natura 1600": 1600};
 const SH=[['A',0],['1/2000',1/2000],['1/1000',1/1000],['1/500',1/500],['1/250',1/250],['1/125',1/125],['1/60',1/60],['1/30',1/30],['1/15',1/15],['1/8',1/8],['1/4',1/4],['1/2',1/2],['1"',1]];
-const AP=[1.4,2,2.8,4,5.6,8,11,16];
+const AP_MIN=1.4,AP_MAX=16,AP_AUTO=8;                       // aperture is set automatically
+const EC=Array.from({length:31},(_,i)=>(i-15)/3);             // exposure compensation -5 … +5 EV in 1/3 steps
+const ecLabel=v=>{if(Math.abs(v)<1e-6)return '±0';const s=v>0?'+':'−',a=Math.abs(v),w=Math.floor(a+1e-6),r=Math.round((a-w)*3);return s+(w?w:'')+(r===1?'⅓':r===2?'⅔':'')||s+'0';};
+const fmtN=N=>{const st=[1.4,1.8,2,2.8,3.5,4,5.6,6.3,8,9,11,13,16];let b=st[0];for(const x of st)if(Math.abs(Math.log(x/N))<Math.abs(Math.log(b/N)))b=x;return b;};
 const SC=[['☀️','แดดจ้า',15],['🌤','แดดอ่อน',14],['⛅','มีเมฆ',13],['🌥','ร่ม/ครึ้ม',12],['🌆','ใกล้ค่ำ',10],['💡','ในอาคารสว่าง',8],['🏠','ในบ้าน',6],['🌃','กลางคืน',4]];
-let shIdx=0,apIdx=5,scIdx=2,liveGain=1;
+let shIdx=0,ecIdx=15,scIdx=2,liveGain=1;
 try{const c=localStorage.getItem('filmcam.sc');if(c!==null&&SC[+c])scIdx=+c;}catch(e){}
-try{const a=localStorage.getItem('filmcam.sh'),b=localStorage.getItem('filmcam.ap');if(a!==null&&SH[+a])shIdx=+a;if(b!==null&&AP[+b])apIdx=+b;}catch(e){}
+try{const a=localStorage.getItem('filmcam.sh'),b=localStorage.getItem('filmcam.ec');if(a!==null&&SH[+a])shIdx=+a;if(b!==null&&EC[+b]!==undefined)ecIdx=+b;}catch(e){}
 const filmIso=()=>ISO[cur().name]||400;
 const fmtT=t=>t>=0.5?(Math.round(t*10)/10)+'"':'1/'+Math.round(1/t);
 /* exposure the light condition calls for (Sunny-16 style EV table) */
-const sceneT=()=>{const N=AP[apIdx];return N*N*100/(filmIso()*Math.pow(2,SC[scIdx][2]));};
+const sceneK=()=>100/(filmIso()*Math.pow(2,SC[scIdx][2]));   // correct shutter = k·N²
 const steady=t=>t<=1/60*1.05?['ถือปกติ','ok']:t<=1/15*1.05?['ถือนิ่งๆ','warn']:t<=1/4*1.05?['พิงหรือค้ำให้นิ่ง','warn']:['ใช้ขาตั้ง','warn'];
-const verdictOf=st=>Math.abs(st)<0.34?'พอดี':st>0?`โอเวอร์ +${st.toFixed(1)}`:`อันเดอร์ ${st.toFixed(1)}`;
+const verdictOf=st=>Math.abs(st)<0.34?'พอดี':st>0?`โอเวอร์ +${st.toFixed(1)}`:`อันเดอร์ ${st.toFixed(1)}`;   // deviation from what you asked for
 function drawExpo(){
   const mk=(box,items,on,pick)=>{box.innerHTML='';items.forEach((lab,i)=>{const b=document.createElement('button');b.type='button';b.className='echip';b.textContent=lab;b.setAttribute('aria-pressed',i===on);b.addEventListener('click',()=>pick(i));box.appendChild(b);});};
   mk($('scStrip'),SC.map(x=>x[0]+' '+x[1]),scIdx,i=>{scIdx=i;try{localStorage.setItem('filmcam.sc',i);}catch(e){}drawExpo();updateMeta();});
   mk($('shStrip'),SH.map(x=>x[0]),shIdx,i=>{shIdx=i;try{localStorage.setItem('filmcam.sh',i);}catch(e){}drawExpo();updateMeta();});
-  mk($('apStrip'),AP.map(n=>'f/'+n),apIdx,i=>{apIdx=i;try{localStorage.setItem('filmcam.ap',i);}catch(e){}drawExpo();updateMeta();});}
+  mk($('ecStrip'),EC.map(ecLabel),ecIdx,i=>{ecIdx=i;try{localStorage.setItem('filmcam.ec',i);}catch(e){}drawExpo();updateMeta();});
+  const on=$('ecStrip').children[ecIdx];if(on&&!drawExpo.done){drawExpo.done=1;requestAnimationFrame(()=>on.scrollIntoView({inline:'center',block:'nearest'}));}}
 function updateMeta(){$('filmMeta').textContent=`ISO ${filmIso()} · เกรน ${dots(cur().g)}${cur().h?' · halation':''}`;
   const pl=exposurePlan(null),[sh,cls]=steady(pl.t);liveGain=pl.gain;
   const auto=!SH[shIdx][1],m=$('meter');m.innerHTML='';
   const add=(t,c)=>{const e=document.createElement(c?'span':'span');if(c)e.className=c;e.textContent=t;m.appendChild(e);};
   const b=document.createElement('b');b.textContent=(auto?'A ':'')+fmtT(pl.t);m.appendChild(b);
-  add(` · f/${AP[apIdx]} · `);add(verdictOf(pl.stops),Math.abs(pl.stops)<0.34?'ok':'warn');add(' · ');add(sh,cls);}
+  add(` · f/${fmtN(pl.N)} · `);if(Math.abs(pl.ec)>1e-6){add(ecLabel(pl.ec)+' EV');add(' · ');}
+  add(verdictOf(pl.dev),Math.abs(pl.dev)<0.34?'ok':'warn');add(' · ');add(sh,cls);}
 /* read the exposure the phone actually used from the photo's EXIF */
 async function readExif(file){try{const buf=await file.slice(0,262144).arrayBuffer(),v=new DataView(buf);if(v.byteLength<4||v.getUint16(0)!==0xFFD8)return null;let o=2;
   while(o+10<v.byteLength){const m=v.getUint16(o);if((m&0xFF00)!==0xFF00)return null;const len=v.getUint16(o+2);
@@ -336,12 +341,15 @@ function parseTiff(v,t){const le=v.getUint16(t)===0x4949,u16=p=>v.getUint16(p,le
     if(tag===0x829A)r.t=rat();else if(tag===0x829D)r.N=rat();else if(tag===0x8827)r.iso=type===3?u16(e+8):u32(e+8);}
   return r.t>0&&r.N>0&&r.iso>0?r:null;}
 /* exposure: compare the film exposure you chose with what the phone metered */
-function exposurePlan(exif){const iso=filmIso(),N=AP[apIdx],tSel=SH[shIdx][1];
-  const tc=exif?exif.t*exif.iso/(exif.N*exif.N)*N*N/iso:sceneT();   // 'correct' shutter for these settings
-  const src=exif?'exif':'scene';
-  if(!tSel){const t=Math.min(30,Math.max(1/4000,tc)),st=Math.max(-5,Math.min(5,Math.log2(t/tc)));return {gain:Math.pow(2,st),stops:st,t,known:true,src};}
-  const stops=Math.max(-5,Math.min(5,Math.log2(tSel/tc)));
-  return {gain:Math.pow(2,stops),stops,t:tSel,known:true,src};}
+/* A = program auto (f/8, shutter chosen). Picking a shutter speed = shutter priority (aperture chosen f/1.4–f/16).
+   Compensation shifts the target exposure; 'dev' is how far the result misses that target when the camera runs out of range. */
+function exposurePlan(exif){const iso=filmIso(),ec=EC[ecIdx],tSel=SH[shIdx][1],src=exif?'exif':'scene';
+  const k=exif?exif.t*exif.iso/(exif.N*exif.N)/iso:sceneK();   // metered-correct shutter = k·N²
+  let t,N;
+  if(!tSel){N=AP_AUTO;t=Math.min(30,Math.max(1/4000,k*N*N*Math.pow(2,ec)));}
+  else{t=tSel;N=Math.min(AP_MAX,Math.max(AP_MIN,Math.sqrt(t/(k*Math.pow(2,ec)))));}
+  const stops=Math.max(-5,Math.min(5,Math.log2(t/(k*N*N))));
+  return {gain:Math.pow(2,stops),stops,dev:stops-ec,ec,t,N,known:true,src};}
 function applyGain(data,gain){if(Math.abs(gain-1)<0.01)return;const lut=new Uint8ClampedArray(256);
   for(let i=0;i<256;i++){let v=lin[i]*gain;if(v>0.8)v=0.8+0.2*(1-Math.exp(-(v-0.8)/0.2));lut[i]=encode(v);}
   const d=data.data;for(let i=0;i<d.length;i+=4){d[i]=lut[d[i]];d[i+1]=lut[d[i+1]];d[i+2]=lut[d[i+2]];}}
@@ -480,7 +488,7 @@ async function develop(srcImg,exif){busy(true,'กำลังล้างฟิ
     const blob=await toBlob(c,0.94),orig=await toBlob(origC,0.85);
     if(last){URL.revokeObjectURL(last.url);URL.revokeObjectURL(last.ourl);}
     const d=new Date(),p=n=>String(n).padStart(2,'0');
-    last={blob,url:URL.createObjectURL(blob),ourl:URL.createObjectURL(orig),film:f,w:out.width,h:out.height,plan,iso:filmIso(),N:AP[apIdx],auto:!SH[shIdx][1],scene:SC[scIdx][0]+' '+SC[scIdx][1],
+    last={blob,url:URL.createObjectURL(blob),ourl:URL.createObjectURL(orig),film:f,w:out.width,h:out.height,plan,iso:filmIso(),auto:!SH[shIdx][1],scene:SC[scIdx][0]+' '+SC[scIdx][1],
       name:`${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}_${f.name.replace(/[^\w]+/g,'-').replace(/^-|-$/g,'')}.jpg`};
     $('thumb').style.backgroundImage=`url(${last.url})`;$('thumb').disabled=false;openReview();
   }catch(e){alertBox('ล้างรูปไม่สำเร็จ: '+(e.message||e));}finally{busy(false);}}
@@ -502,7 +510,7 @@ function alertBox(t){$('revInfo').textContent=t;}
 /* ===== review + save ===== */
 function openReview(){$('review').hidden=false;$('revImg').src=last.url;$('revName').textContent=last.film.name;
   const pl=last.plan,[sh]=steady(pl.t);
-  $('revMeta').textContent=`ISO ${last.iso} · ${last.auto?'A ':''}${fmtT(pl.t)} · f/${last.N} · ${verdictOf(pl.stops)} · ${sh}`;
+  $('revMeta').textContent=`ISO ${last.iso} · ${last.auto?'A ':''}${fmtT(pl.t)} · f/${fmtN(pl.N)}${Math.abs(pl.ec)>1e-6?' · '+ecLabel(pl.ec)+' EV':''} · ${verdictOf(pl.dev)} · ${sh}`;
   $('revInfo').textContent=(pl.src==='exif'?'วัดแสงจากรูปจริง':`คิดแสงจากสภาพ ${last.scene}`)+' · กดค้างที่รูปเพื่อเทียบกับต้นฉบับ';
   if(stream){cancelAnimationFrame(raf);}}
 function closeReview(){$('review').hidden=true;if(nativeMode)return;if(stream){raf=requestAnimationFrame(draw);}else if(wasLive){wasLive=false;startCam();}else $('start').hidden=false;}
