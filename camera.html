@@ -42,6 +42,9 @@ body{margin:0;background:var(--body);color:var(--fg);font-family:var(--f-body);f
 .native{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:24px;text-align:center;color:var(--muted);background:radial-gradient(circle at 50% 40%,#221c18,#0d0b0a 70%)}
 .native b{font-family:var(--f-display);font-size:20px;color:var(--fg)}
 .native span{max-width:28ch;font-size:14px;line-height:1.5}
+.focus{position:absolute;width:66px;height:66px;margin:-33px 0 0 -33px;border:2px solid var(--accent);border-radius:50%;pointer-events:none;box-shadow:0 0 0 1px rgba(0,0,0,.45),inset 0 0 0 1px rgba(0,0,0,.35);transition:transform .2s}
+.focus.busy{transform:scale(.8);border-style:dashed}
+.segtag{position:absolute;top:8px;right:8px;font-family:var(--f-mono);font-size:11px;padding:4px 8px;border-radius:4px;border:0;background:rgba(0,0,0,.62);color:#fff;cursor:pointer}
 .flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none;transition:opacity .25s ease-out}
 .flash.on{opacity:.85;transition:none}
 .strip{display:flex;gap:8px;overflow-x:auto;scroll-snap-type:x mandatory;padding:12px 16px 4px;scrollbar-width:none;
@@ -97,7 +100,7 @@ body{margin:0;background:var(--body);color:var(--fg);font-family:var(--f-body);f
 @keyframes spin{to{transform:rotate(360deg)}}
 @media (prefers-reduced-motion:reduce){.reel{animation:none}.flash{transition:none}}
 </style>
-</head>
+<link rel="icon" href="favicon.png"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.json"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"></head>
 <body>
 <div class="app" id="app">
   <div class="top">
@@ -111,7 +114,9 @@ body{margin:0;background:var(--body);color:var(--fg);font-family:var(--f-body);f
     <div class="vf" id="vf">
       <canvas id="view" aria-label="ช่องมองภาพพร้อมโทนฟิล์ม"></canvas>
       <div class="orig" id="origTag" hidden>ต้นฉบับ</div>
-      <div class="hint" id="vfHint">กดค้างที่ภาพเพื่อดูแบบไม่ใส่ฟิล์ม</div>
+      <div class="focus" id="focusRing" hidden></div>
+      <button class="segtag" id="segTag" type="button" hidden></button>
+      <div class="hint" id="vfHint">แตะวัตถุเพื่อให้ชัด ฉากหลังเบลอตามค่า f · กดค้างเพื่อดูต้นฉบับ</div>
       <div class="native" id="nativeMsg" hidden><b>เลือกฟิล์มด้านล่าง</b><span>เลือกสภาพแสง ตั้งสปีดกับรูรับแสง แล้วกดชัตเตอร์เพื่อถ่ายด้วยกล้องของเครื่อง · สปีด A = ให้กล้องเลือกสปีด ดูค่าที่เลือกได้ใต้ชื่อฟิล์ม</span></div>
       <div class="flash" id="flash"></div>
     </div>
@@ -291,7 +296,7 @@ function drawExpo(){
   const mk=(box,items,on,pick)=>{box.innerHTML='';items.forEach((lab,i)=>{const b=document.createElement('button');b.type='button';b.className='echip';b.textContent=lab;b.setAttribute('aria-pressed',i===on);b.addEventListener('click',()=>pick(i));box.appendChild(b);});};
   mk($('scStrip'),SC.map(x=>x[0]+' '+x[1]),scIdx,i=>{scIdx=i;try{localStorage.setItem('filmcam.sc',i);}catch(e){}drawExpo();updateMeta();});
   mk($('shStrip'),SH.map(x=>x[0]),shIdx,i=>{shIdx=i;try{localStorage.setItem('filmcam.sh',i);}catch(e){}drawExpo();updateMeta();});
-  mk($('apStrip'),AP.map(n=>'f/'+n),apIdx,i=>{apIdx=i;try{localStorage.setItem('filmcam.ap',i);}catch(e){}drawExpo();updateMeta();});}
+  mk($('apStrip'),AP.map(n=>'f/'+n),apIdx,i=>{apIdx=i;try{localStorage.setItem('filmcam.ap',i);}catch(e){}drawExpo();updateMeta();if(focusPt&&dofOn)segLabel(`หน้าชัด f/${AP[i]} ✕`);});}
 function updateMeta(){$('filmMeta').textContent=`ISO ${filmIso()} · เกรน ${dots(cur().g)}${cur().h?' · halation':''}`;
   const pl=exposurePlan(null),[sh,cls]=steady(pl.t);liveGain=pl.gain;
   const auto=!SH[shIdx][1],m=$('meter');m.innerHTML='';
@@ -312,7 +317,7 @@ function parseTiff(v,t){const le=v.getUint16(t)===0x4949,u16=p=>v.getUint16(p,le
 function exposurePlan(exif){const iso=filmIso(),N=AP[apIdx],tSel=SH[shIdx][1];
   const tc=exif?exif.t*exif.iso/(exif.N*exif.N)*N*N/iso:sceneT();   // 'correct' shutter for these settings
   const src=exif?'exif':'scene';
-  if(!tSel)return {gain:1,stops:0,t:tc,known:true,src};
+  if(!tSel){const t=Math.min(30,Math.max(1/4000,tc)),st=Math.max(-5,Math.min(5,Math.log2(t/tc)));return {gain:Math.pow(2,st),stops:st,t,known:true,src};}
   const stops=Math.max(-5,Math.min(5,Math.log2(tSel/tc)));
   return {gain:Math.pow(2,stops),stops,t:tSel,known:true,src};}
 function applyGain(data,gain){if(Math.abs(gain-1)<0.01)return;const lut=new Uint8ClampedArray(256);
@@ -334,7 +339,7 @@ function selectFilm(i,scroll){sel=i;try{localStorage.setItem('filmcam.sel',i);}c
   if(gl)uploadFilm();}
 
 /* ===== WebGL live preview ===== */
-const canvas=$('view');let gl=null,progMain,progMask,lutTex,covTex,vidTex,maskFB,maskTex,quad,maskW=0,maskH=0;
+const canvas=$('view');let dofTex=null,dofOn=false,gl=null,progMain,progMask,lutTex,covTex,vidTex,maskFB,maskTex,quad,maskW=0,maskH=0;
 const VS=`attribute vec2 p;varying vec2 v;void main(){v=p*0.5+0.5;gl_Position=vec4(p,0.,1.);}`;
 const FS_MASK=`precision mediump float;varying vec2 v;uniform sampler2D uVid;uniform vec2 uStep;uniform float uMir;
 void main(){float m=0.;for(int y=0;y<6;y++)for(int x=0;x<6;x++){vec2 o=(vec2(float(x),float(y))-2.5)*uStep;vec2 uv=v+o;uv.x=mix(uv.x,1.-uv.x,uMir);
@@ -344,7 +349,7 @@ precision highp float;
 #else
 precision mediump float;
 #endif
-varying vec2 v;uniform sampler2D uVid,uLut,uCov,uMask;uniform vec3 uP[10];
+varying vec2 v;uniform sampler2D uVid,uLut,uCov,uMask,uDofM;uniform vec3 uP[10];uniform vec2 uDofR;uniform float uDof;
 uniform float uLift,uGA,uGS,uSeed,uHal,uMir,uBypass,uClamp,uGain;uniform vec2 uMaskTexel;
 float tolin(float c){return c<=.04045?c/12.92:pow((c+.055)/1.055,2.4);}float tosrgb(float c){c=clamp(c,0.,1.);return c<=.0031308?c*12.92:1.055*pow(c,1./2.4)-.055;}float shd(float x){return x<=.8?x:.8+.2*(1.-exp(-(x-.8)/.2));}
 float h(vec2 p){p=fract(p*vec2(443.897,441.423)+uSeed);p+=dot(p,p.yx+19.19);return fract((p.x+p.y)*p.x);}
@@ -353,6 +358,11 @@ float covAt(vec3 c){vec3 x=clamp(c*8.-.5,0.,7.-1e-4);vec3 i=floor(x),t=x-i;float
  for(int dz=0;dz<2;dz++)for(int dy=0;dy<2;dy++)for(int dx=0;dx<2;dx++){vec3 d=vec3(float(dx),float(dy),float(dz));vec3 j=min(i+d,7.);
   float s=texture2D(uCov,vec2((j.g*8.+j.b+.5)/64.,(j.r+.5)/8.)).r;vec3 ww=mix(1.-t,t,d);w+=s*ww.x*ww.y*ww.z;}return w;}
 void main(){vec2 uv=vec2(mix(v.x,1.-v.x,uMir),1.-v.y);vec3 src=texture2D(uVid,uv).rgb;
+ if(uDof>.5&&uBypass<.5){float m=smoothstep(.3,.7,texture2D(uDofM,uv).r);
+  if(m<.999){vec3 acc=vec3(0.);float ws=0.;
+   for(int k=0;k<24;k++){float fk=float(k)+.5;float r=sqrt(fk/24.);float a=fk*2.39996;vec2 p=uv+vec2(cos(a),sin(a))*r*uDofR;
+    float w=1.-smoothstep(.3,.7,texture2D(uDofM,p).r)+.02;acc+=texture2D(uVid,p).rgb*w;ws+=w;}
+   src=mix(acc/ws,src,m);}}
  if(uBypass>.5){gl_FragColor=vec4(src,1.);return;}
  vec3 ex=vec3(tosrgb(shd(tolin(src.r)*uGain)),tosrgb(shd(tolin(src.g)*uGain)),tosrgb(shd(tolin(src.b)*uGain)));vec3 c255=floor(ex*255.+.5);
  vec3 col=vec3(texture2D(uLut,vec2((c255.r+.5)/256.,.5)).r,texture2D(uLut,vec2((c255.g+.5)/256.,.5)).g,texture2D(uLut,vec2((c255.b+.5)/256.,.5)).b)*255.;
@@ -378,7 +388,7 @@ function initGL(){gl=canvas.getContext('webgl',{preserveDrawingBuffer:false,anti
   quad=gl.createBuffer();gl.bindBuffer(gl.ARRAY_BUFFER,quad);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,1,1]),gl.STATIC_DRAW);
   gl.enableVertexAttribArray(0);gl.vertexAttribPointer(0,2,gl.FLOAT,false,0,0);
   gl.pixelStorei(gl.UNPACK_ALIGNMENT,1);
-  vidTex=tex(gl.LINEAR);lutTex=tex(gl.NEAREST);covTex=tex(gl.NEAREST);maskTex=tex(gl.LINEAR);
+  vidTex=tex(gl.LINEAR);dofTex=tex(gl.LINEAR);lutTex=tex(gl.NEAREST);covTex=tex(gl.NEAREST);maskTex=tex(gl.LINEAR);
   gl.bindTexture(gl.TEXTURE_2D,covTex);gl.texImage2D(gl.TEXTURE_2D,0,gl.LUMINANCE,64,8,0,gl.LUMINANCE,gl.UNSIGNED_BYTE,Uint8Array.from(COV,x=>Math.round(x*255)));
   maskFB=gl.createFramebuffer();uploadFilm();return true;}
 function uploadFilm(){const f=cur(),lift=OPT.base/100*20,d=new Uint8Array(256*4);
@@ -407,10 +417,79 @@ function draw(){const vid=$('vid');if(!stream||vid.readyState<2){raf=requestAnim
   frameSeed=(frameSeed+0.6180339)%1;gl.uniform1f(U('uSeed'),frameSeed);
   gl.uniform1f(U('uHal'),f.h?f.h*OPT.strength:0);gl.uniform2f(U('uMaskTexel'),1/maskW||0,1/maskH||0);
   gl.uniform1f(U('uMir'),mir);gl.uniform1f(U('uBypass'),bypass?1:0);gl.uniform1f(U('uGain'),liveGain);
+  gl.activeTexture(gl.TEXTURE4);gl.bindTexture(gl.TEXTURE_2D,dofTex);gl.uniform1i(U('uDofM'),4);gl.activeTexture(gl.TEXTURE0);
+  const Rr=dofRadius(AP[apIdx]);gl.uniform1f(U('uDof'),dofOn&&Rr>0.002?1:0);gl.uniform2f(U('uDofR'),Rr*L/cw,Rr*L/ch);
   gl.drawArrays(gl.TRIANGLE_STRIP,0,4);raf=requestAnimationFrame(draw);}
 function fitVF(){const wrap=$('vfWrap'),vf=$('vf'),W=wrap.clientWidth-20,H=wrap.clientHeight,a=canvas.width/canvas.height||0.75;
   let w=W,h=W/a;if(h>H){h=H;w=H*a;}vf.style.width=Math.floor(w)+'px';vf.style.height=Math.floor(h)+'px';}
 addEventListener('resize',fitVF);
+
+/* ===== depth of field: tap a subject, blur the rest by the f-number ===== */
+// Background blur for a 50 mm lens on 35 mm film focused at ~1.5 m: disc = f^2/(N(s-f)) = 1.72/N mm on a 36 mm frame.
+const dofRadius=N=>0.024/N;               // blur radius as a fraction of the long side
+const MP_BASE='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@1.0.1';
+const MODEL_V2='https://storage.googleapis.com/mediapipe-models/interactive_segmenter_v2/magic_touch/int8/1/interactive_segmentation.task';
+const MODEL_V1='https://storage.googleapis.com/mediapipe-models/interactive_segmenter/magic_touch/float32/1/magic_touch.tflite';
+let seg=null,segLoading=null,focusPt=null,segTimer=0,segBusy=false;
+function loadSeg(){if(seg)return Promise.resolve(seg);if(window.__segOverride){seg=window.__segOverride;return Promise.resolve(seg);}
+  if(segLoading)return segLoading;
+  segLoading=(async()=>{const mp=await import(MP_BASE+'/vision_bundle.mjs');const fsr=await mp.FilesetResolver.forVisionTasks(MP_BASE+'/wasm');
+    try{const t=await mp.InteractiveSegmenter.createFromOptions(fsr,{baseOptions:{modelAssetPath:MODEL_V2,delegate:'CPU'}});
+      seg={kind:'v2',run:(cv,pt)=>{t.setImage(cv);const m=t.segment([{brushMode:1,point:[pt],isCompleted:true}]);const r={a:m.getAsFloat32Array().slice(),w:m.width,h:m.height};m.close();return r;}};}
+    catch(e){console.warn('interactive segmenter v2 unavailable, using v1',e);
+      const t=await mp.InteractiveSegmenterLegacy.createFromOptions(fsr,{baseOptions:{modelAssetPath:MODEL_V1,delegate:'CPU'},outputConfidenceMasks:true,outputCategoryMask:false});
+      seg={kind:'v1',run:(cv,pt)=>{const res=t.segment(cv,{keypoint:pt});const ms=res.confidenceMasks||[];const m=ms[ms.length-1];const r={a:m.getAsFloat32Array().slice(),w:m.width,h:m.height};res.close();return r;}};}
+    return seg;})();
+  segLoading.catch(()=>{segLoading=null;});
+  return segLoading;}
+/* run the segmenter on a small copy of an image/video; returns a 0..1 mask, subject = 1 */
+function segmentAt(src,pt,maxSide){const sw=src.videoWidth||src.width,sh=src.videoHeight||src.height,k=Math.min(1,maxSide/Math.max(sw,sh));
+  const c=document.createElement('canvas');c.width=Math.max(1,Math.round(sw*k));c.height=Math.max(1,Math.round(sh*k));c.getContext('2d').drawImage(src,0,0,c.width,c.height);
+  const m=seg.run(c,{x:pt.x,y:pt.y});
+  const ix=Math.min(m.w-1,Math.max(0,Math.round(pt.x*m.w))),iy=Math.min(m.h-1,Math.max(0,Math.round(pt.y*m.h)));
+  if(m.a[iy*m.w+ix]<0.5)for(let i=0;i<m.a.length;i++)m.a[i]=1-m.a[i];   // make sure the tapped point is "subject"
+  return m;}
+function boxBlur(a,w,h,r,passes){if(r<1)return;const t=new Float32Array(a.length),div=1/(2*r+1);
+  for(let p=0;p<passes;p++){
+    for(let y=0;y<h;y++){const o=y*w;let acc=0;for(let k=-r;k<=r;k++)acc+=a[o+Math.min(w-1,Math.max(0,k))];
+      for(let x=0;x<w;x++){t[o+x]=acc*div;acc+=a[o+Math.min(w-1,x+r+1)]-a[o+Math.max(0,x-r)];}}
+    for(let x=0;x<w;x++){let acc=0;for(let k=-r;k<=r;k++)acc+=t[Math.min(h-1,Math.max(0,k))*w+x];
+      for(let y=0;y<h;y++){a[y*w+x]=acc*div;acc+=t[Math.min(h-1,y+r+1)*w+x]-t[Math.max(0,y-r)*w+x];}}}}
+const sstep=x=>{x=Math.min(1,Math.max(0,(x-0.3)/0.4));return x*x*(3-2*x);};
+/* full-size background blur: subject from the sharp frame, background blurred without subject colours bleeding in */
+function applyDof(data,mask,N){const w=data.width,h=data.height,L=Math.max(w,h),R=dofRadius(N)*L;if(R<1.5)return false;
+  const mw=mask.w,mh=mask.h,mk=new Float32Array(mask.a);boxBlur(mk,mw,mh,1,2);for(let i=0;i<mk.length;i++)mk[i]=sstep(mk[i]);
+  const f=Math.max(1,R/6),sw=Math.max(1,Math.round(w/f)),sh=Math.max(1,Math.round(h/f));
+  const full=document.createElement('canvas');full.width=w;full.height=h;full.getContext('2d').putImageData(data,0,0);
+  const sc=document.createElement('canvas');sc.width=sw;sc.height=sh;const sx=sc.getContext('2d',{willReadFrequently:true});sx.drawImage(full,0,0,sw,sh);
+  const sp=sx.getImageData(0,0,sw,sh).data,n=sw*sh,rr=new Float32Array(n),gg=new Float32Array(n),bb=new Float32Array(n),ww=new Float32Array(n);
+  const mAt=(fx,fy)=>{const x=Math.min(mw-1,Math.max(0,fx*mw-0.5)),y=Math.min(mh-1,Math.max(0,fy*mh-0.5)),x0=x|0,y0=y|0,x1=Math.min(mw-1,x0+1),y1=Math.min(mh-1,y0+1),tx=x-x0,ty=y-y0;
+    return (mk[y0*mw+x0]*(1-tx)+mk[y0*mw+x1]*tx)*(1-ty)+(mk[y1*mw+x0]*(1-tx)+mk[y1*mw+x1]*tx)*ty;};
+  for(let y=0;y<sh;y++)for(let x=0;x<sw;x++){const i=y*sw+x,q=1-mAt((x+.5)/sw,(y+.5)/sh)+0.02;ww[i]=q;rr[i]=sp[i*4]*q;gg[i]=sp[i*4+1]*q;bb[i]=sp[i*4+2]*q;}
+  const r=Math.max(1,Math.round(R/f/1.7));[rr,gg,bb,ww].forEach(a=>boxBlur(a,sw,sh,r,3));
+  const d=data.data;
+  for(let y=0;y<h;y++){const fy=Math.min(sh-1,Math.max(0,(y+.5)/f-.5)),y0=fy|0,y1=Math.min(sh-1,y0+1),ty=fy-y0;
+    for(let x=0;x<w;x++){const m=mAt((x+.5)/w,(y+.5)/h);if(m>=0.999)continue;
+      const fx=Math.min(sw-1,Math.max(0,(x+.5)/f-.5)),x0=fx|0,x1=Math.min(sw-1,x0+1),tx=fx-x0,
+        a=y0*sw+x0,b=y0*sw+x1,c=y1*sw+x0,e=y1*sw+x1,k0=(1-tx)*(1-ty),k1=tx*(1-ty),k2=(1-tx)*ty,k3=tx*ty,
+        W=ww[a]*k0+ww[b]*k1+ww[c]*k2+ww[e]*k3,i=(y*w+x)*4;
+      const R_=(rr[a]*k0+rr[b]*k1+rr[c]*k2+rr[e]*k3)/W,G_=(gg[a]*k0+gg[b]*k1+gg[c]*k2+gg[e]*k3)/W,B_=(bb[a]*k0+bb[b]*k1+bb[c]*k2+bb[e]*k3)/W;
+      d[i]=R_+(d[i]-R_)*m;d[i+1]=G_+(d[i+1]-G_)*m;d[i+2]=B_+(d[i+2]-B_)*m;}}
+  return true;}
+function uploadDofMask(m){const b=new Uint8Array(m.w*m.h);for(let i=0;i<b.length;i++)b[i]=Math.max(0,Math.min(255,Math.round(m.a[i]*255)));
+  gl.activeTexture(gl.TEXTURE4);gl.bindTexture(gl.TEXTURE_2D,dofTex);gl.texImage2D(gl.TEXTURE_2D,0,gl.LUMINANCE,m.w,m.h,0,gl.LUMINANCE,gl.UNSIGNED_BYTE,b);gl.activeTexture(gl.TEXTURE0);dofOn=true;}
+function segLabel(t){const b=$('segTag');b.hidden=!t;b.textContent=t||'';}
+function clearFocus(){focusPt=null;dofOn=false;clearTimeout(segTimer);$('focusRing').hidden=true;segLabel('');}
+$('segTag').addEventListener('click',e=>{e.stopPropagation();clearFocus();});
+async function tapFocus(nx,ny){const ring=$('focusRing');ring.style.left=(nx*100)+'%';ring.style.top=(ny*100)+'%';ring.hidden=false;ring.classList.add('busy');
+  focusPt={x:facing==='user'?1-nx:nx,y:ny};
+  segLabel(seg?'กำลังเลือกวัตถุ…':'กำลังโหลดตัวเลือกวัตถุ…');
+  try{await loadSeg();}catch(e){console.warn(e);ring.classList.remove('busy');focusPt=null;segLabel('เบลอฉากหลังใช้ไม่ได้ (โหลดโมเดลไม่สำเร็จ) ✕');return;}
+  clearTimeout(segTimer);refreshMask();}
+function refreshMask(){clearTimeout(segTimer);if(!focusPt||!stream||!$('review').hidden){return;}
+  if(!segBusy){segBusy=true;try{const m=segmentAt($('vid'),focusPt,384);uploadDofMask(m);$('focusRing').classList.remove('busy');segLabel(`หน้าชัด f/${AP[apIdx]} ✕`);}
+    catch(e){console.warn(e);segLabel('เลือกวัตถุไม่สำเร็จ แตะใหม่อีกครั้ง ✕');}finally{segBusy=false;}}
+  segTimer=setTimeout(refreshMask,1200);}
 
 /* ===== camera ===== */
 let stream=null,facing='environment',raf=0,nativeMode=false;
@@ -431,13 +510,18 @@ async function startCam(){const note=$('startNote');
     if(n==='NotAllowedError'&&inFrame){enterNative();return;}
     $('start').hidden=false;}}
 $('startBtn').addEventListener('click',startCam);
-$('flip').addEventListener('click',()=>{facing=facing==='environment'?'user':'environment';startCam();});
+$('flip').addEventListener('click',()=>{clearFocus();facing=facing==='environment'?'user':'environment';startCam();});
 let wasLive=false;
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(stream){wasLive=true;stream.getTracks().forEach(t=>t.stop());stream=null;}}else if(wasLive&&$('review').hidden){wasLive=false;startCam();}});
 
 /* hold to compare */
 const hold=(el,on,off)=>{el.addEventListener('pointerdown',e=>{e.preventDefault();on();});['pointerup','pointercancel','pointerleave'].forEach(t=>el.addEventListener(t,off));el.addEventListener('contextmenu',e=>e.preventDefault());};
-hold($('vf'),()=>{bypass=true;$('origTag').hidden=false;},()=>{bypass=false;$('origTag').hidden=true;});
+(()=>{const cv=$('view');let t=0,held=false,sx=0,sy=0;
+  cv.addEventListener('pointerdown',e=>{e.preventDefault();held=false;sx=e.clientX;sy=e.clientY;clearTimeout(t);t=setTimeout(()=>{held=true;bypass=true;$('origTag').hidden=false;},320);});
+  const end=e=>{clearTimeout(t);if(held){bypass=false;$('origTag').hidden=true;held=false;return;}
+    if(e.type==='pointerup'&&stream&&!nativeMode&&Math.hypot(e.clientX-sx,e.clientY-sy)<12){const r=cv.getBoundingClientRect();tapFocus((e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);}};
+  cv.addEventListener('pointerup',end);cv.addEventListener('pointercancel',end);cv.addEventListener('pointerleave',e=>{clearTimeout(t);if(held){bypass=false;$('origTag').hidden=true;held=false;}});
+  cv.addEventListener('contextmenu',e=>e.preventDefault());})();
 
 /* ===== capture ===== */
 const busy=(on,t)=>{$('busy').hidden=!on;if(t)$('busyText').textContent=t;};
@@ -452,11 +536,13 @@ function toData(src){const w=src.width||src.naturalWidth,h=src.height||src.natur
 let last=null;
 async function develop(srcImg,exif){busy(true,'กำลังล้างฟิล์ม…');await new Promise(r=>setTimeout(r,40));
   try{const data=toData(srcImg),f=cur();const origC=document.createElement('canvas');origC.width=data.width;origC.height=data.height;origC.getContext('2d').putImageData(data,0,0);
+    let dofUsed=false;if(focusPt&&seg&&!nativeMode){busy(true,'กำลังเบลอฉากหลัง…');await new Promise(r=>setTimeout(r,30));
+      try{const mk=segmentAt(srcImg,focusPt,768);dofUsed=applyDof(data,mk,AP[apIdx]);}catch(e){console.warn(e);}busy(true,'กำลังล้างฟิล์ม…');await new Promise(r=>setTimeout(r,20));}
     const plan=exposurePlan(exif);const exd=new ImageData(new Uint8ClampedArray(data.data),data.width,data.height);applyGain(exd,plan.gain);const out=render(exd,f,OPT);const c=document.createElement('canvas');c.width=out.width;c.height=out.height;c.getContext('2d').putImageData(out,0,0);
     const blob=await toBlob(c,0.94),orig=await toBlob(origC,0.85);
     if(last){URL.revokeObjectURL(last.url);URL.revokeObjectURL(last.ourl);}
     const d=new Date(),p=n=>String(n).padStart(2,'0');
-    last={blob,url:URL.createObjectURL(blob),ourl:URL.createObjectURL(orig),film:f,w:out.width,h:out.height,plan,iso:filmIso(),N:AP[apIdx],auto:!SH[shIdx][1],scene:SC[scIdx][0]+' '+SC[scIdx][1],
+    last={blob,url:URL.createObjectURL(blob),ourl:URL.createObjectURL(orig),film:f,w:out.width,h:out.height,plan,iso:filmIso(),N:AP[apIdx],auto:!SH[shIdx][1],dof:dofUsed,scene:SC[scIdx][0]+' '+SC[scIdx][1],
       name:`${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}_${f.name.replace(/[^\w]+/g,'-').replace(/^-|-$/g,'')}.jpg`};
     $('thumb').style.backgroundImage=`url(${last.url})`;$('thumb').disabled=false;openReview();
   }catch(e){alertBox('ล้างรูปไม่สำเร็จ: '+(e.message||e));}finally{busy(false);}}
@@ -473,9 +559,9 @@ function alertBox(t){$('revInfo').textContent=t;}
 function openReview(){$('review').hidden=false;$('revImg').src=last.url;$('revName').textContent=last.film.name;
   const pl=last.plan,[sh]=steady(pl.t);
   $('revMeta').textContent=`ISO ${last.iso} · ${last.auto?'A ':''}${fmtT(pl.t)} · f/${last.N} · ${verdictOf(pl.stops)} · ${sh}`;
-  $('revInfo').textContent=(pl.src==='exif'?'วัดแสงจากรูปจริง':`คิดแสงจากสภาพ ${last.scene}`)+' · กดค้างที่รูปเพื่อเทียบกับต้นฉบับ';
+  $('revInfo').textContent=(pl.src==='exif'?'วัดแสงจากรูปจริง':`คิดแสงจากสภาพ ${last.scene}`)+(last.dof?` · เบลอหลังแบบ f/${last.N}`:'')+' · กดค้างที่รูปเพื่อเทียบกับต้นฉบับ';
   if(stream){cancelAnimationFrame(raf);}}
-function closeReview(){$('review').hidden=true;if(nativeMode)return;if(stream){raf=requestAnimationFrame(draw);}else if(wasLive){wasLive=false;startCam();}else $('start').hidden=false;}
+function closeReview(){$('review').hidden=true;if(nativeMode)return;if(stream){raf=requestAnimationFrame(draw);if(focusPt)setTimeout(refreshMask,50);}else if(wasLive){wasLive=false;startCam();}else $('start').hidden=false;}
 $('thumb').addEventListener('click',()=>last&&openReview());
 $('revClose').addEventListener('click',closeReview);$('revAgain').addEventListener('click',closeReview);
 hold($('revPic'),()=>{if(last){$('revImg').src=last.ourl;$('revOrig').hidden=false;}},()=>{if(last){$('revImg').src=last.url;$('revOrig').hidden=true;}});
